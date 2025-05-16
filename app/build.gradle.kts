@@ -1,5 +1,6 @@
 import java.text.SimpleDateFormat
 import java.util.Date
+import java.util.Properties
 
 plugins {
     alias(libs.plugins.android.application)
@@ -13,12 +14,26 @@ android {
 
     defaultConfig {
         applicationId = "com.grebnev.geomarker"
-        minSdk = 24
+        minSdk = 26
         targetSdk = 35
         versionCode = 1
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        val localProperties = Properties()
+        val localPropertiesFile = rootProject.file("local.properties")
+        if (localPropertiesFile.exists()) {
+            localPropertiesFile.inputStream().use { localProperties.load(it) }
+        }
+
+        val mapkitApiKey =
+            localProperties
+                .getProperty("MAPKIT_API_KEY", "")
+                .takeIf { it.isNotBlank() }
+                ?: throw GradleException("You need to add the MAPKIT_API_KEY to the file local.properties")
+
+        buildConfigField("String", "MAPKIT_API_KEY", "\"$mapkitApiKey\"")
     }
 
     applicationVariants.all {
@@ -51,10 +66,12 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 
 dependencies {
+    implementation(project(":feature-geomarker"))
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
@@ -64,6 +81,7 @@ dependencies {
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
+    implementation(libs.yandex.mapkit.sdk)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

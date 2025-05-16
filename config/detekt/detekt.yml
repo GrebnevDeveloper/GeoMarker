@@ -1,27 +1,40 @@
-FunctionNaming:
-  active: true
-  excludes: [
-    '**/test/**',
-    '**/androidTest/**',
-    '**/commonTest/**',
-    '**/jvmTest/**',
-    '**/androidUnitTest/**',
-    '**/androidInstrumentedTest/**',
-    '**/jsTest/**',
-    '**/iosTest/**'
-  ]
-  functionPattern: '[a-z][a-zA-Z0-9]*'
-  excludeClassPattern: '$^'
-  ignoreAnnotated: [ 'Composable' ]
+build:
+  maxIssues: 10
+  weights:
+    complexity: 2
+    LongParameterList: 1
+    style: 1
+    comments: 1
 
-LongMethod:
-  active: true
-  threshold: 40
+complexity:
+  LongMethod:
+    active: true
+    threshold: 40
+  LongParameterList:
+    active: true
+    functionThreshold: 8
+    constructorThreshold: 8
+  CyclomaticComplexMethod:
+    active: true
+    threshold: 4
 
-LongParameterList:
-  active: true
-  functionThreshold: 8
+naming:
+  FunctionNaming:
+    active: true
+    excludes: [
+      '**/test/**',
+      '**/androidTest/**',
+      '**/commonTest/**',
+      '**/jvmTest/**',
+      '**/androidUnitTest/**',
+      '**/androidInstrumentedTest/**',
+      '**/jsTest/**',
+      '**/iosTest/**'
+    ]
+    functionPattern: '[a-z][a-zA-Z0-9]*'
+    excludeClassPattern: '$^'
+    ignoreAnnotated: [ 'Composable' ]
 
-ComplexCondition:
-  active: true
-  threshold: 4
+style:
+  NewLineAtEndOfFile:
+    active: false
