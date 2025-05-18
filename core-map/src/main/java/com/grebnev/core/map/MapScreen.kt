@@ -1,5 +1,6 @@
 package com.grebnev.core.map
 
+import android.Manifest
 import android.content.Context
 import android.view.ViewGroup
 import androidx.compose.foundation.layout.Arrangement
@@ -22,11 +23,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.grebnev.core.permissions.PermissionRequired
 import com.yandex.mapkit.MapKitFactory
 import com.yandex.mapkit.geometry.Point
 import com.yandex.mapkit.map.CameraPosition
@@ -50,18 +53,6 @@ fun MapScreen(modifier: Modifier = Modifier) {
                         )
                 }
             },
-            update = { mapView ->
-                val map = mapView.mapWindow.map
-
-                map.move(
-                    CameraPosition(Point(55.751574, 37.573856), 11f, 0f, 0f),
-                )
-
-                map.mapObjects.addPlacemark().apply {
-                    geometry = Point(55.751574, 37.573856)
-                    setIcon(ImageProvider.fromResource(context, R.drawable.ic_my_location))
-                }
-            },
         )
         Column(
             modifier =
@@ -73,6 +64,33 @@ fun MapScreen(modifier: Modifier = Modifier) {
             ZoomButton(Icons.Rounded.Add) { changeZoom(mapView, 1f) }
             ZoomButton(Icons.Rounded.Remove) { changeZoom(mapView, -1f) }
             LocationButton { moveToLocation(mapView) }
+        }
+    }
+
+    CurrentLocationMarker(context, mapView)
+}
+
+@Composable
+private fun CurrentLocationMarker(
+    context: Context,
+    mapView: MapView,
+) {
+    val map = mapView.mapWindow.map
+
+    PermissionRequired(
+        context = context,
+        permission = Manifest.permission.ACCESS_FINE_LOCATION,
+        permissionDescription = stringResource(R.string.location_access),
+    ) { isGranted ->
+        if (isGranted) {
+            map.move(
+                CameraPosition(Point(55.751574, 37.573856), 11f, 0f, 0f),
+            )
+
+            map.mapObjects.addPlacemark().apply {
+                geometry = Point(55.751574, 37.573856)
+                setIcon(ImageProvider.fromResource(context, R.drawable.ic_my_location))
+            }
         }
     }
 }
