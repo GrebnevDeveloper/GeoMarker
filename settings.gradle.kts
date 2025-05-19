@@ -23,3 +23,4 @@ rootProject.name = "GeoMarker"
 include(":app")
 include(":core-map")
 include(":feature-geomarker")
+include(":core-permissions")

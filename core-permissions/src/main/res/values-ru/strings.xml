@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="access_denied">Доступ запрещен</string>
+    <string name="settings">Настройки</string>
+    <string name="close">Закрыть</string>
+    <string name="change_permission_in_settings">Для работы функции требуется %1$s. Вы можете изменить разрешение в настройках приложения.</string>
+    <string name="request_access">Для работы функции требуется %1$s. Предоставить доступ?</string>
+    <string name="allow">Разрешить</string>
+    <string name="access_required">Требуется доступ</string>
+</resources>
