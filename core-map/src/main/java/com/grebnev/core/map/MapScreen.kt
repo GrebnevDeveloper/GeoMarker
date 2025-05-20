@@ -2,7 +2,6 @@ package com.grebnev.core.map
 
 import android.Manifest
 import android.content.Context
-import android.view.ViewGroup
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -74,36 +73,22 @@ fun MapScreen(
         Box(modifier = modifier.fillMaxSize()) {
             AndroidView(
                 modifier = modifier.fillMaxSize(),
-                factory = {
-                    mapView.apply {
-                        layoutParams =
-                            ViewGroup.LayoutParams(
-                                ViewGroup.LayoutParams.MATCH_PARENT,
-                                ViewGroup.LayoutParams.MATCH_PARENT,
-                            )
-                    }
-                },
+                factory = { mapView },
             )
             if (permissionState.status.isGranted) {
                 CurrentLocationMarker(context, mapView, locationState.value)
             }
 
-            Column(
+            MapControls(
                 modifier =
-                    modifier
+                    Modifier
                         .align(Alignment.CenterEnd)
                         .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                ZoomButton(Icons.Rounded.Add) { changeZoom(mapView, 1f) }
-                ZoomButton(Icons.Rounded.Remove) { changeZoom(mapView, -1f) }
-                LocationButton(
-                    state = locationState.value,
-                    hasPermission = permissionState.status.isGranted,
-                    onMoveToMyLocation = { moveToMyLocation(mapView, locationState.value) },
-                    onRequestPermission = { permissionState.launchPermissionRequest() },
-                )
-            }
+                mapView = mapView,
+                locationState = locationState.value,
+                hasPermission = permissionState.status.isGranted,
+                onRequestPermission = { permissionState.launchPermissionRequest() },
+            )
         }
     }
 
@@ -111,6 +96,29 @@ fun MapScreen(
         onDispose {
             mapViewModel.stopUpdates()
         }
+    }
+}
+
+@Composable
+private fun MapControls(
+    modifier: Modifier = Modifier,
+    mapView: MapView,
+    locationState: LocationState,
+    hasPermission: Boolean,
+    onRequestPermission: () -> Unit,
+) {
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        ZoomButton(Icons.Rounded.Add) { changeZoom(mapView, 1f) }
+        ZoomButton(Icons.Rounded.Remove) { changeZoom(mapView, -1f) }
+        LocationButton(
+            state = locationState,
+            hasPermission = hasPermission,
+            onMoveToMyLocation = { moveToMyLocation(mapView, locationState) },
+            onRequestPermission = onRequestPermission,
+        )
     }
 }
 
