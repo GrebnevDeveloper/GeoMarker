@@ -11,6 +11,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
+import com.google.accompanist.permissions.PermissionState
 import com.google.accompanist.permissions.PermissionStatus
 import com.google.accompanist.permissions.rememberPermissionState
 
@@ -20,7 +21,7 @@ fun PermissionRequired(
     context: Context,
     permission: String,
     permissionDescription: String,
-    content: @Composable (Boolean) -> Unit,
+    content: @Composable (PermissionState) -> Unit,
 ) {
     val permissionState = rememberPermissionState(permission)
     var showRationale by remember { mutableStateOf(false) }
@@ -68,14 +69,7 @@ fun PermissionRequired(
         )
     }
 
-    when (permissionState.status) {
-        is PermissionStatus.Granted -> content(true)
-        is PermissionStatus.Denied -> {
-            if (!showRationale && !showDenied) {
-                content(false)
-            }
-        }
-    }
+    content(permissionState)
 }
 
 fun Context.openAppSettings() {

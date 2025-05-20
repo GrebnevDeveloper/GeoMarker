@@ -2,7 +2,6 @@ package com.grebnev.core.map
 
 import android.Manifest
 import android.content.Context
-import android.view.ViewGroup
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,14 +10,23 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.LocationDisabled
+import androidx.compose.material.icons.rounded.LocationOff
 import androidx.compose.material.icons.rounded.MyLocation
+import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.Remove
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -26,70 +34,115 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.google.accompanist.permissions.ExperimentalPermissionsApi
+import com.google.accompanist.permissions.isGranted
+import com.grebnev.core.location.domain.LocationState
 import com.grebnev.core.permissions.PermissionRequired
 import com.yandex.mapkit.MapKitFactory
-import com.yandex.mapkit.geometry.Point
 import com.yandex.mapkit.map.CameraPosition
 import com.yandex.mapkit.mapview.MapView
 import com.yandex.runtime.image.ImageProvider
 
+@OptIn(ExperimentalPermissionsApi::class)
 @Composable
-fun MapScreen(modifier: Modifier = Modifier) {
+fun MapScreen(
+    modifier: Modifier = Modifier,
+    mapViewModel: MapViewModel = hiltViewModel(),
+) {
     val context = LocalContext.current
     val mapView = rememberMapViewWithLifecycle(context)
+    val locationState = mapViewModel.locationState.collectAsState()
 
-    Box(modifier = modifier.fillMaxSize()) {
-        AndroidView(
-            modifier = modifier.fillMaxSize(),
-            factory = {
-                mapView.apply {
-                    layoutParams =
-                        ViewGroup.LayoutParams(
-                            ViewGroup.LayoutParams.MATCH_PARENT,
-                            ViewGroup.LayoutParams.MATCH_PARENT,
-                        )
-                }
-            },
-        )
-        Column(
-            modifier =
-                modifier
-                    .align(Alignment.CenterEnd)
-                    .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            ZoomButton(Icons.Rounded.Add) { changeZoom(mapView, 1f) }
-            ZoomButton(Icons.Rounded.Remove) { changeZoom(mapView, -1f) }
-            LocationButton { moveToLocation(mapView) }
+    PermissionRequired(
+        context = context,
+        permission = Manifest.permission.ACCESS_FINE_LOCATION,
+        permissionDescription = stringResource(R.string.location_access),
+    ) { permissionState ->
+        LaunchedEffect(permissionState.status) {
+            if (permissionState.status.isGranted) {
+                mapViewModel.startUpdates()
+            } else {
+                mapViewModel.stopUpdates()
+            }
+        }
+
+        Box(modifier = modifier.fillMaxSize()) {
+            AndroidView(
+                modifier = modifier.fillMaxSize(),
+                factory = { mapView },
+            )
+            if (permissionState.status.isGranted) {
+                CurrentLocationMarker(context, mapView, locationState.value)
+            }
+
+            MapControls(
+                modifier =
+                    Modifier
+                        .align(Alignment.CenterEnd)
+                        .padding(16.dp),
+                mapView = mapView,
+                locationState = locationState.value,
+                hasPermission = permissionState.status.isGranted,
+                onRequestPermission = { permissionState.launchPermissionRequest() },
+            )
         }
     }
 
-    CurrentLocationMarker(context, mapView)
+    DisposableEffect(Unit) {
+        onDispose {
+            mapViewModel.stopUpdates()
+        }
+    }
+}
+
+@Composable
+private fun MapControls(
+    modifier: Modifier = Modifier,
+    mapView: MapView,
+    locationState: LocationState,
+    hasPermission: Boolean,
+    onRequestPermission: () -> Unit,
+) {
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        ZoomButton(Icons.Rounded.Add) { changeZoom(mapView, 1f) }
+        ZoomButton(Icons.Rounded.Remove) { changeZoom(mapView, -1f) }
+        LocationButton(
+            state = locationState,
+            hasPermission = hasPermission,
+            onMoveToMyLocation = { moveToMyLocation(mapView, locationState) },
+            onRequestPermission = onRequestPermission,
+        )
+    }
 }
 
 @Composable
 private fun CurrentLocationMarker(
     context: Context,
     mapView: MapView,
+    state: LocationState,
 ) {
     val map = mapView.mapWindow.map
 
-    PermissionRequired(
-        context = context,
-        permission = Manifest.permission.ACCESS_FINE_LOCATION,
-        permissionDescription = stringResource(R.string.location_access),
-    ) { isGranted ->
-        if (isGranted) {
-            map.move(
-                CameraPosition(Point(55.751574, 37.573856), 11f, 0f, 0f),
-            )
+    var isFirstLocation by remember { mutableStateOf(true) }
 
+    LaunchedEffect(state) {
+        if (state is LocationState.Available) {
+            map.mapObjects.clear()
             map.mapObjects.addPlacemark().apply {
-                geometry = Point(55.751574, 37.573856)
+                geometry = state.point
                 setIcon(ImageProvider.fromResource(context, R.drawable.ic_my_location))
+            }
+
+            if (isFirstLocation) {
+                map.move(CameraPosition(state.point, 15f, 0f, 0f))
+                isFirstLocation = false
             }
         }
     }
@@ -146,18 +199,44 @@ private fun ZoomButton(
 }
 
 @Composable
-private fun LocationButton(onClickListener: () -> Unit) {
+private fun LocationButton(
+    state: LocationState,
+    hasPermission: Boolean,
+    onMoveToMyLocation: () -> Unit,
+    onRequestPermission: () -> Unit,
+) {
+    val icon =
+        when {
+            !hasPermission -> Icons.Rounded.LocationDisabled
+            state is LocationState.Loading -> Icons.Rounded.Refresh
+            state is LocationState.Error -> Icons.Rounded.LocationOff
+            else -> Icons.Rounded.MyLocation
+        }
     FloatingActionButton(
         modifier = Modifier.size(48.dp),
-        onClick = onClickListener,
+        onClick = {
+            if (!hasPermission) {
+                onRequestPermission()
+            } else if (state is LocationState.Available) {
+                onMoveToMyLocation()
+            }
+        },
         containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.9f),
         contentColor = MaterialTheme.colorScheme.onPrimary,
     ) {
-        Icon(
-            modifier = Modifier.size(24.dp),
-            imageVector = Icons.Rounded.MyLocation,
-            contentDescription = null,
-        )
+        if (state is LocationState.Loading) {
+            CircularProgressIndicator(
+                modifier = Modifier.size(24.dp),
+                strokeWidth = 2.dp,
+                color = MaterialTheme.colorScheme.onPrimary,
+            )
+        } else {
+            Icon(
+                modifier = Modifier.size(24.dp),
+                imageVector = icon,
+                contentDescription = null,
+            )
+        }
     }
 }
 
@@ -173,5 +252,13 @@ private fun changeZoom(
     }
 }
 
-private fun moveToLocation(mapView: MapView) {
+private fun moveToMyLocation(
+    mapView: MapView,
+    state: LocationState,
+) {
+    if (state is LocationState.Available) {
+        mapView.mapWindow.map.move(
+            CameraPosition(state.point, 15f, 0f, 0f),
+        )
+    }
 }

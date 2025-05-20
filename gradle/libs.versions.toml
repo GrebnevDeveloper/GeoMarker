@@ -13,10 +13,12 @@ ktlintPlugin = "12.2.0"
 ktlint = "1.5.0"
 detektPlugin = "1.23.8"
 mapKitSkd = "4.15.0-lite"
+mvikotlin = "4.3.0"
 decompose = "3.3.0"
 icons = "1.7.8"
 accompanist = "0.37.3"
 hilt = "2.56.1"
+hiltNavigation = "1.2.0"
 
 [libraries]
 androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "coreKtx" }
@@ -36,14 +38,23 @@ androidx-ui-test-junit4 = { module = "androidx.compose.ui:ui-test-junit4" }
 androidx-material3 = { module = "androidx.compose.material3:material3" }
 ktlint-rules = { module = "com.pinterest.ktlint:ktlint-ruleset-standard", version.ref = "ktlint" }
 yandex-mapkit-sdk = { module = "com.yandex.android:maps.mobile", version.ref = "mapKitSkd" }
-decompose = { module = "com.arkivanov.decompose:decompose", version.ref = "decompose" }
+mvikotlin-core = { module = "com.arkivanov.mvikotlin:mvikotlin", version.ref = "mvikotlin" }
+mvikotlin-main = { module = "com.arkivanov.mvikotlin:mvikotlin-main", version.ref = "mvikotlin" }
+mvikotlin-coroutines = { module = "com.arkivanov.mvikotlin:mvikotlin-extensions-coroutines", version.ref = "mvikotlin" }
+mvikotlin-logging = { module = "com.arkivanov.mvikotlin:mvikotlin-logging", version.ref = "mvikotlin" }
+decompose-core = { module = "com.arkivanov.decompose:decompose", version.ref = "decompose" }
+decompose-extensions = { module = "com.arkivanov.decompose:extensions-compose", version.ref = "decompose" }
+decompose-android = { module = "com.arkivanov.decompose:extensions-android", version.ref = "decompose" }
 accompanist-permissions = { module = "com.google.accompanist:accompanist-permissions", version.ref = "accompanist"}
 hilt-android = { module = "com.google.dagger:hilt-android", version.ref = "hilt"}
 hilt-compiler = { module = "com.google.dagger:hilt-compiler", version.ref = "hilt"}
 hilt-test = { module = "com.google.dagger:hilt-android-testing", version.ref = "hilt"}
+hilt-navigation = { module = "androidx.hilt:hilt-navigation-compose", version.ref = "hiltNavigation" }
 
 [bundles]
 ui = ["androidx-ui", "androidx-ui-graphics", "androidx-ui-tooling", "androidx-ui-tooling-preview", "androidx-material3"]
+mvikotlin = ["mvikotlin-core", "mvikotlin-coroutines", "mvikotlin-main", "mvikotlin-logging"]
+decompose = ["decompose-core", "decompose-extensions", "decompose-android"]
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

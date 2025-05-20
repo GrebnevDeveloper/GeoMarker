@@ -7,7 +7,7 @@ plugins {
 }
 
 android {
-    namespace = "com.grebnev.core.map"
+    namespace = "com.grebnev.core.location"
     compileSdk = 35
 
     defaultConfig {
@@ -27,18 +27,12 @@ android {
 }
 
 dependencies {
-    implementation(project(":core-permissions"))
-    implementation(project(":core-location"))
 
     implementation(libs.androidx.core.ktx)
-    implementation(libs.androidx.activity.compose)
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.bundles.ui)
-    implementation(libs.androidx.compose.icons)
     implementation(libs.yandex.mapkit.sdk)
-    implementation(libs.accompanist.permissions)
     implementation(libs.hilt.android)
-    implementation(libs.hilt.navigation)
     ksp(libs.hilt.compiler)
     testImplementation(libs.junit)
 }
