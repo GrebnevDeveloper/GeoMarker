@@ -19,7 +19,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.grebnev.core.map.MapContent
+import com.grebnev.core.map.presentation.MapContent
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -30,7 +30,7 @@ fun GeoMarkerContent(component: GeoMarkerComponent) {
         scaffoldState = sheetState,
         content = { paddingValues ->
             Box {
-                MapContent()
+                MapContent(component.mapComponent)
                 FloatingActionButton(
                     modifier =
                         Modifier

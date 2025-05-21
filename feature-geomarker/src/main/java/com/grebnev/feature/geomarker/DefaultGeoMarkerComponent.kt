@@ -2,8 +2,8 @@ package com.grebnev.feature.geomarker
 
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.childContext
-import com.grebnev.core.map.DefaultMapComponent
-import com.grebnev.core.map.MapComponent
+import com.grebnev.core.map.presentation.DefaultMapComponent
+import com.grebnev.core.map.presentation.MapComponent
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject

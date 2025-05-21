@@ -1,4 +1,4 @@
-package com.grebnev.core.map
+package com.grebnev.core.map.presentation
 
 import android.Manifest
 import android.content.Context
@@ -22,11 +22,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -34,28 +31,49 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
-import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
-import com.grebnev.core.location.domain.LocationState
+import com.grebnev.core.map.R
+import com.grebnev.core.map.extensions.hasSignificantDifferenceFrom
 import com.grebnev.core.permissions.PermissionRequired
+import com.yandex.mapkit.Animation
 import com.yandex.mapkit.MapKitFactory
+import com.yandex.mapkit.map.CameraListener
 import com.yandex.mapkit.map.CameraPosition
+import com.yandex.mapkit.map.CameraUpdateReason
+import com.yandex.mapkit.map.Map
 import com.yandex.mapkit.mapview.MapView
 import com.yandex.runtime.image.ImageProvider
 
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
 fun MapContent(
+    component: MapComponent,
     modifier: Modifier = Modifier,
-    mapViewModel: MapViewModel = hiltViewModel(),
 ) {
+    val state by component.model.subscribeAsState()
     val context = LocalContext.current
     val mapView = rememberMapViewWithLifecycle(context)
-    val locationState = mapViewModel.locationState.collectAsState()
+
+    LaunchedEffect(state.isFirstLocation) {
+        if (!state.isFirstLocation && state.cameraPosition != null) {
+            state.cameraPosition?.let { position ->
+                mapView.mapWindow.map.move(position)
+            }
+        }
+    }
+
+    SynchronizationPositionWithStore(
+        mapView = mapView,
+        cameraPosition = state.cameraPosition,
+        updateCameraPosition = { position ->
+            component.onIntent(MapStore.Intent.UpdateCameraPosition(position))
+        },
+    )
 
     PermissionRequired(
         context = context,
@@ -64,9 +82,9 @@ fun MapContent(
     ) { permissionState ->
         LaunchedEffect(permissionState.status) {
             if (permissionState.status.isGranted) {
-                mapViewModel.startUpdates()
+                component.onIntent(MapStore.Intent.StartLocationUpdates)
             } else {
-                mapViewModel.stopUpdates()
+                component.onIntent(MapStore.Intent.StopLocationUpdates)
             }
         }
 
@@ -76,7 +94,11 @@ fun MapContent(
                 factory = { mapView },
             )
             if (permissionState.status.isGranted) {
-                CurrentLocationMarker(context, mapView, locationState.value)
+                CurrentLocationMarker(
+                    context = context,
+                    mapView = mapView,
+                    locationState = state.locationState,
+                )
             }
 
             MapControls(
@@ -84,17 +106,62 @@ fun MapContent(
                     Modifier
                         .align(Alignment.CenterEnd)
                         .padding(16.dp),
-                mapView = mapView,
-                locationState = locationState.value,
+                locationState = state.locationState,
                 hasPermission = permissionState.status.isGranted,
                 onRequestPermission = { permissionState.launchPermissionRequest() },
+                onMoveToMyLocation = { component.onIntent(MapStore.Intent.MoveToMyLocation) },
+                onChangeZoom = { delta -> component.onIntent(MapStore.Intent.ChangeZoom(delta)) },
             )
         }
     }
 
     DisposableEffect(Unit) {
         onDispose {
-            mapViewModel.stopUpdates()
+            component.onIntent(MapStore.Intent.StopLocationUpdates)
+        }
+    }
+}
+
+@Composable
+private fun SynchronizationPositionWithStore(
+    mapView: MapView,
+    cameraPosition: CameraPosition?,
+    updateCameraPosition: (CameraPosition) -> Unit,
+) {
+    LaunchedEffect(cameraPosition) {
+        cameraPosition?.let { targetPosition ->
+            if (mapView.mapWindow.map.cameraPosition
+                    .hasSignificantDifferenceFrom(targetPosition)
+            ) {
+                mapView.mapWindow.map.move(
+                    targetPosition,
+                    Animation(Animation.Type.SMOOTH, 0.3f),
+                    null,
+                )
+            }
+        }
+    }
+
+    DisposableEffect(mapView) {
+        val map = mapView.mapWindow.map
+        val listener =
+            object : CameraListener {
+                override fun onCameraPositionChanged(
+                    map: Map,
+                    position: CameraPosition,
+                    cameraUpdateReason: CameraUpdateReason,
+                    finished: Boolean,
+                ) {
+                    if (cameraUpdateReason == CameraUpdateReason.GESTURES && finished) {
+                        updateCameraPosition(position)
+                    }
+                }
+            }
+
+        map.addCameraListener(listener)
+
+        onDispose {
+            map.removeCameraListener(listener)
         }
     }
 }
@@ -102,21 +169,22 @@ fun MapContent(
 @Composable
 private fun MapControls(
     modifier: Modifier = Modifier,
-    mapView: MapView,
-    locationState: LocationState,
+    locationState: MapStore.State.LocationState,
     hasPermission: Boolean,
     onRequestPermission: () -> Unit,
+    onMoveToMyLocation: () -> Unit,
+    onChangeZoom: (Float) -> Unit,
 ) {
     Column(
         modifier = modifier,
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        ZoomButton(Icons.Rounded.Add) { changeZoom(mapView, 1f) }
-        ZoomButton(Icons.Rounded.Remove) { changeZoom(mapView, -1f) }
+        ZoomButton(Icons.Rounded.Add) { onChangeZoom(1f) }
+        ZoomButton(Icons.Rounded.Remove) { onChangeZoom(-1f) }
         LocationButton(
             state = locationState,
             hasPermission = hasPermission,
-            onMoveToMyLocation = { moveToMyLocation(mapView, locationState) },
+            onMoveToMyLocation = onMoveToMyLocation,
             onRequestPermission = onRequestPermission,
         )
     }
@@ -126,23 +194,21 @@ private fun MapControls(
 private fun CurrentLocationMarker(
     context: Context,
     mapView: MapView,
-    state: LocationState,
+    locationState: MapStore.State.LocationState,
 ) {
     val map = mapView.mapWindow.map
 
-    var isFirstLocation by remember { mutableStateOf(true) }
-
-    LaunchedEffect(state) {
-        if (state is LocationState.Available) {
-            map.mapObjects.clear()
-            map.mapObjects.addPlacemark().apply {
-                geometry = state.point
-                setIcon(ImageProvider.fromResource(context, R.drawable.ic_my_location))
+    LaunchedEffect(locationState) {
+        when (locationState) {
+            is MapStore.State.LocationState.Available -> {
+                map.mapObjects.clear()
+                map.mapObjects.addPlacemark().apply {
+                    geometry = locationState.point
+                    setIcon(ImageProvider.fromResource(context, R.drawable.ic_my_location))
+                }
             }
 
-            if (isFirstLocation) {
-                map.move(CameraPosition(state.point, 15f, 0f, 0f))
-                isFirstLocation = false
+            else -> {
             }
         }
     }
@@ -161,10 +227,12 @@ private fun rememberMapViewWithLifecycle(context: Context): MapView {
                         MapKitFactory.getInstance().onStart()
                         mapView.onStart()
                     }
+
                     Lifecycle.Event.ON_STOP -> {
                         mapView.onStop()
                         MapKitFactory.getInstance().onStop()
                     }
+
                     else -> {}
                 }
             }
@@ -200,7 +268,7 @@ private fun ZoomButton(
 
 @Composable
 private fun LocationButton(
-    state: LocationState,
+    state: MapStore.State.LocationState,
     hasPermission: Boolean,
     onMoveToMyLocation: () -> Unit,
     onRequestPermission: () -> Unit,
@@ -208,8 +276,8 @@ private fun LocationButton(
     val icon =
         when {
             !hasPermission -> Icons.Rounded.LocationDisabled
-            state is LocationState.Loading -> Icons.Rounded.Refresh
-            state is LocationState.Error -> Icons.Rounded.LocationOff
+            state is MapStore.State.LocationState.Loading -> Icons.Rounded.Refresh
+            state is MapStore.State.LocationState.Error -> Icons.Rounded.LocationOff
             else -> Icons.Rounded.MyLocation
         }
     FloatingActionButton(
@@ -217,14 +285,14 @@ private fun LocationButton(
         onClick = {
             if (!hasPermission) {
                 onRequestPermission()
-            } else if (state is LocationState.Available) {
+            } else if (state is MapStore.State.LocationState.Available) {
                 onMoveToMyLocation()
             }
         },
         containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.9f),
         contentColor = MaterialTheme.colorScheme.onPrimary,
     ) {
-        if (state is LocationState.Loading) {
+        if (state is MapStore.State.LocationState.Loading) {
             CircularProgressIndicator(
                 modifier = Modifier.size(24.dp),
                 strokeWidth = 2.dp,
@@ -237,28 +305,5 @@ private fun LocationButton(
                 contentDescription = null,
             )
         }
-    }
-}
-
-private fun changeZoom(
-    mapView: MapView,
-    delta: Float,
-) {
-    mapView.mapWindow.map.cameraPosition.let { current ->
-        val newZoom = (current.zoom + delta).coerceIn(1f..20f)
-        mapView.mapWindow.map.move(
-            CameraPosition(current.target, newZoom, current.azimuth, current.tilt),
-        )
-    }
-}
-
-private fun moveToMyLocation(
-    mapView: MapView,
-    state: LocationState,
-) {
-    if (state is LocationState.Available) {
-        mapView.mapWindow.map.move(
-            CameraPosition(state.point, 15f, 0f, 0f),
-        )
     }
 }

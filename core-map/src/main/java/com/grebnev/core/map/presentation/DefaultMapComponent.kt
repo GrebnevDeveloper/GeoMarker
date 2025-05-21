@@ -1,12 +1,18 @@
-package com.grebnev.core.map
+package com.grebnev.core.map.presentation
 
 import com.arkivanov.decompose.ComponentContext
+import com.arkivanov.decompose.value.MutableValue
+import com.arkivanov.decompose.value.Value
 import com.arkivanov.mvikotlin.core.instancekeeper.getStore
+import com.arkivanov.mvikotlin.extensions.coroutines.stateFlow
+import com.grebnev.core.extensions.componentScope
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.launch
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class DefaultMapComponent
     @AssistedInject
     constructor(
@@ -16,21 +22,19 @@ class DefaultMapComponent
         ComponentContext by componentContext {
         private val store = instanceKeeper.getStore { mapStoreFactory.create() }
 
-        @OptIn(ExperimentalCoroutinesApi::class)
-        override fun onStartUpdates() {
-            store.accept(MapStore.Intent.StartLocationUpdates)
+        private val _model = MutableValue(store.stateFlow.value)
+        override val model: Value<MapStore.State> = _model
+
+        init {
+            componentScope().launch {
+                store.stateFlow.collect { newState ->
+                    _model.value = newState
+                }
+            }
         }
 
-        override fun onStopUpdates() {
-            store.accept(MapStore.Intent.StopLocationUpdates)
-        }
-
-        override fun onMoveToMyLocation() {
-            store.accept(MapStore.Intent.MoveToMyLocation)
-        }
-
-        override fun onChangeZoom(delta: Float) {
-            store.accept(MapStore.Intent.ChangeZoom(delta))
+        override fun onIntent(intent: MapStore.Intent) {
+            store.accept(intent)
         }
 
         @AssistedFactory

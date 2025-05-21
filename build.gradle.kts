@@ -9,6 +9,7 @@ plugins {
     alias(libs.plugins.serialization) apply false
     alias(libs.plugins.ktlint.analisis) apply true
     alias(libs.plugins.detekt.analisis) apply true
+    alias(libs.plugins.jetbrains.kotlin.jvm) apply false
 }
 subprojects {
     plugins.apply("org.jlleitschuh.gradle.ktlint")
