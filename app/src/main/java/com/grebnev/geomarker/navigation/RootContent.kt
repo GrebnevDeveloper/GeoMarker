@@ -2,6 +2,7 @@ package com.grebnev.geomarker.navigation
 
 import androidx.compose.runtime.Composable
 import com.arkivanov.decompose.extensions.compose.stack.Children
+import com.grebnev.feature.addmarker.AddMarkerContent
 import com.grebnev.feature.geomarker.GeoMarkerContent
 import com.grebnev.geomarker.ui.theme.GeoMarkerTheme
 
@@ -12,6 +13,9 @@ fun RootContent(component: RootComponent) {
             when (val instance = it.instance) {
                 is RootComponent.Child.GeoMarker -> {
                     GeoMarkerContent(component = instance.geoMarkerComponent)
+                }
+                is RootComponent.Child.AddMarker -> {
+                    AddMarkerContent(component = instance.addMarkerComponent)
                 }
             }
         }

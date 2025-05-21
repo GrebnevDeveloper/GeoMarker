@@ -5,7 +5,10 @@ import com.arkivanov.decompose.DelicateDecomposeApi
 import com.arkivanov.decompose.router.stack.ChildStack
 import com.arkivanov.decompose.router.stack.StackNavigation
 import com.arkivanov.decompose.router.stack.childStack
+import com.arkivanov.decompose.router.stack.pop
+import com.arkivanov.decompose.router.stack.push
 import com.arkivanov.decompose.value.Value
+import com.grebnev.feature.addmarker.DefaultAddMarkerComponent
 import com.grebnev.feature.geomarker.DefaultGeoMarkerComponent
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedFactory
@@ -17,6 +20,7 @@ class DefaultRootComponent
     @AssistedInject
     constructor(
         private val geoMarkerComponentFactory: DefaultGeoMarkerComponent.Factory,
+        private val addMarkerComponentFactory: DefaultAddMarkerComponent.Factory,
         @Assisted componentContext: ComponentContext,
     ) : RootComponent,
         ComponentContext by componentContext {
@@ -40,10 +44,21 @@ class DefaultRootComponent
                     val component =
                         geoMarkerComponentFactory.create(
                             onAddMarkerClicked = {
+                                navigation.push(Config.AddMarker)
                             },
                             componentContext = componentContext,
                         )
                     RootComponent.Child.GeoMarker(component)
+                }
+                Config.AddMarker -> {
+                    val component =
+                        addMarkerComponentFactory.create(
+                            onBackClicked = {
+                                navigation.pop()
+                            },
+                            componentContext = componentContext,
+                        )
+                    RootComponent.Child.AddMarker(component)
                 }
             }
 
@@ -51,6 +66,9 @@ class DefaultRootComponent
         sealed interface Config {
             @Serializable
             data object GeoMarker : Config
+
+            @Serializable
+            data object AddMarker : Config
         }
 
         @AssistedFactory

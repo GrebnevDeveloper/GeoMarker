@@ -37,7 +37,7 @@ fun GeoMarkerContent(component: GeoMarkerComponent) {
                             .align(Alignment.BottomEnd)
                             .padding(end = 10.dp, bottom = 88.dp)
                             .size(70.dp),
-                    onClick = {},
+                    onClick = { component.onAddMarkerClicked() },
                     shape = CircleShape,
                 ) {
                     Icon(

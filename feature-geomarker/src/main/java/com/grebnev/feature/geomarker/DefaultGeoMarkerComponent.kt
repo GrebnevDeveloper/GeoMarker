@@ -21,7 +21,7 @@ class DefaultGeoMarkerComponent
                 componentContext = childContext("MapComponent"),
             )
 
-        override fun onAddMarkerClicked(): Unit = onAddMarkerClicked()
+        override fun onAddMarkerClicked() = onAddMarkerClicked.invoke()
 
         @AssistedFactory
         interface Factory {

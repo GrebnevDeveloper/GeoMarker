@@ -82,6 +82,7 @@ android {
 
 dependencies {
     implementation(project(":feature-geomarker"))
+    implementation(project(":feature-addmarker"))
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
