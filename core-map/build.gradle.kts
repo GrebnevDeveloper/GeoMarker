@@ -37,6 +37,8 @@ dependencies {
     implementation(libs.androidx.compose.icons)
     implementation(libs.yandex.mapkit.sdk)
     implementation(libs.accompanist.permissions)
+    implementation(libs.bundles.mvikotlin)
+    implementation(libs.bundles.decompose)
     implementation(libs.hilt.android)
     implementation(libs.hilt.navigation)
     ksp(libs.hilt.compiler)

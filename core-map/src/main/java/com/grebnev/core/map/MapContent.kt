@@ -49,7 +49,7 @@ import com.yandex.runtime.image.ImageProvider
 
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
-fun MapScreen(
+fun MapContent(
     modifier: Modifier = Modifier,
     mapViewModel: MapViewModel = hiltViewModel(),
 ) {

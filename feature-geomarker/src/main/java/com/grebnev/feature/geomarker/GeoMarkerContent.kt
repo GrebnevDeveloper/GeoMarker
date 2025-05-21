@@ -19,18 +19,18 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.grebnev.core.map.MapScreen
+import com.grebnev.core.map.MapContent
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun GeoMarkerScreen() {
+fun GeoMarkerContent(component: GeoMarkerComponent) {
     val sheetState = rememberBottomSheetScaffoldState()
 
     BottomSheetScaffold(
         scaffoldState = sheetState,
         content = { paddingValues ->
             Box {
-                MapScreen()
+                MapContent()
                 FloatingActionButton(
                     modifier =
                         Modifier
