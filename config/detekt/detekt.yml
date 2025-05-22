@@ -7,16 +7,26 @@ build:
     comments: 1
 
 complexity:
+  active: true
+  ComplexInterface:
+    threshold: 10
+  CyclomaticComplexMethod:
+    threshold: 15
   LongMethod:
-    active: true
     threshold: 80
   LongParameterList:
-    active: true
-    functionThreshold: 8
-    constructorThreshold: 8
-  CyclomaticComplexMethod:
-    active: true
+    functionThreshold: 7
+    constructorThreshold: 7
+  NestedBlockDepth:
     threshold: 4
+  StringLiteralDuplication:
+    active: false
+  TooManyFunctions:
+    thresholdInFiles: 15
+    thresholdInClasses: 15
+    thresholdInInterfaces: 15
+    thresholdInObjects: 15
+    thresholdInEnums: 15
 
 naming:
   FunctionNaming:

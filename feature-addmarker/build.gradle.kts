@@ -7,12 +7,13 @@ plugins {
 }
 
 android {
-    namespace = "com.grebnev.feature.geomarker"
+    namespace = "com.grebnev.feature.addmarker"
     compileSdk = 35
 
     defaultConfig {
         minSdk = 26
     }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
@@ -26,13 +27,12 @@ android {
 }
 
 dependencies {
-    implementation(project(":core-map"))
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity.compose)
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.bundles.ui)
-    implementation(libs.androidx.compose.icons)
+    implementation(libs.bundles.mvikotlin)
     implementation(libs.bundles.decompose)
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
