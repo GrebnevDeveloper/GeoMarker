@@ -5,9 +5,9 @@ import com.arkivanov.mvikotlin.core.store.Store
 import com.arkivanov.mvikotlin.core.store.StoreFactory
 import com.arkivanov.mvikotlin.extensions.coroutines.CoroutineBootstrapper
 import com.arkivanov.mvikotlin.extensions.coroutines.CoroutineExecutor
-import com.grebnev.core.location.domain.GetCurrentLocationUseCase
-import com.grebnev.core.location.domain.LocationState
-import com.grebnev.core.location.domain.ManageLocationUpdatesUseCase
+import com.grebnev.core.location.domain.entity.LocationStatus
+import com.grebnev.core.location.domain.usecase.GetCurrentLocationUseCase
+import com.grebnev.core.location.domain.usecase.ManageLocationUpdatesUseCase
 import com.grebnev.core.map.presentation.MapStore.Intent
 import com.grebnev.core.map.presentation.MapStore.Label
 import com.grebnev.core.map.presentation.MapStore.State
@@ -111,16 +111,16 @@ class MapStoreFactory
                     getCurrentLocation().collect { location ->
                         val state =
                             when (location) {
-                                is LocationState.Available ->
+                                is LocationStatus.Available ->
                                     MapStore.State.LocationState.Available(location.point)
 
-                                is LocationState.Loading ->
+                                is LocationStatus.Loading ->
                                     MapStore.State.LocationState.Loading
 
-                                is LocationState.Error ->
+                                is LocationStatus.Error ->
                                     MapStore.State.LocationState.Error
 
-                                LocationState.Initial ->
+                                LocationStatus.Initial ->
                                     MapStore.State.LocationState.Initial
                             }
                         dispatch(Action.LocationStateChanged(state))
