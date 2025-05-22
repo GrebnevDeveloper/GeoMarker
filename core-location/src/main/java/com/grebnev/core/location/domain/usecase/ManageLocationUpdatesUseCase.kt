@@ -1,5 +1,6 @@
-package com.grebnev.core.location.domain
+package com.grebnev.core.location.domain.usecase
 
+import com.grebnev.core.location.domain.repository.LocationRepository
 import javax.inject.Inject
 
 class ManageLocationUpdatesUseCase

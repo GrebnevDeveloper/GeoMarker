@@ -2,9 +2,9 @@ package com.grebnev.core.location.di
 
 import android.content.Context
 import com.grebnev.core.location.data.LocationRepositoryImpl
-import com.grebnev.core.location.domain.GetCurrentLocationUseCase
-import com.grebnev.core.location.domain.LocationRepository
-import com.grebnev.core.location.domain.ManageLocationUpdatesUseCase
+import com.grebnev.core.location.domain.repository.LocationRepository
+import com.grebnev.core.location.domain.usecase.GetCurrentLocationUseCase
+import com.grebnev.core.location.domain.usecase.ManageLocationUpdatesUseCase
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn

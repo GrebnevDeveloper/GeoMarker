@@ -10,8 +10,8 @@ import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
-import com.grebnev.core.location.domain.LocationRepository
-import com.grebnev.core.location.domain.LocationState
+import com.grebnev.core.location.domain.entity.LocationStatus
+import com.grebnev.core.location.domain.repository.LocationRepository
 import com.yandex.mapkit.geometry.Point
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -24,14 +24,14 @@ class LocationRepositoryImpl
         private val context: Context,
     ) : LocationRepository {
         private val fusedLocationClient = LocationServices.getFusedLocationProviderClient(context)
-        private val locationState = MutableStateFlow<LocationState>(LocationState.Initial)
+        private val locationStatus = MutableStateFlow<LocationStatus>(LocationStatus.Initial)
 
         private val locationCallback =
             object : LocationCallback() {
                 override fun onLocationResult(result: LocationResult) {
                     result.lastLocation?.let { location ->
-                        locationState.value =
-                            LocationState.Available(
+                        locationStatus.value =
+                            LocationStatus.Available(
                                 Point(location.latitude, location.longitude),
                             )
                     }
@@ -39,12 +39,12 @@ class LocationRepositoryImpl
 
                 override fun onLocationAvailability(availability: LocationAvailability) {
                     if (!availability.isLocationAvailable) {
-                        locationState.value = LocationState.Error("Location error")
+                        locationStatus.value = LocationStatus.Error("Location error")
                     }
                 }
             }
 
-        override val getCurrentLocation: StateFlow<LocationState> = locationState.asStateFlow()
+        override val getCurrentLocation: StateFlow<LocationStatus> = locationStatus.asStateFlow()
 
         @RequiresPermission(
             allOf = [Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION],
@@ -62,11 +62,11 @@ class LocationRepositoryImpl
                 locationCallback,
                 Looper.getMainLooper(),
             )
-            locationState.value = LocationState.Loading
+            locationStatus.value = LocationStatus.Loading
         }
 
         override fun stopLocationUpdates() {
             fusedLocationClient.removeLocationUpdates(locationCallback)
-            locationState.value = LocationState.Initial
+            locationStatus.value = LocationStatus.Initial
         }
     }
