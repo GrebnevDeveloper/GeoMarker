@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="adding_new_marker">Добавление новой метки</string>
+    <string name="marker_name">Название метки</string>
+    <string name="marker_description">Описание метки</string>
+    <string name="description_too_long">Описание слишком длинное (максимум 200 символов)</string>
+    <string name="name_required">Название обязательно</string>
+    <string name="save">Сохранить</string>
+</resources>

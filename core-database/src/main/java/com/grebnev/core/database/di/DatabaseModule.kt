@@ -3,6 +3,8 @@ package com.grebnev.core.database.di
 import android.content.Context
 import com.grebnev.core.database.database.dao.GeoMarkerDao
 import com.grebnev.core.database.database.dao.GeoMarkerDatabase
+import com.grebnev.core.database.repository.GeoMarkerRepository
+import com.grebnev.core.database.repository.GeoMarkerRepositoryImpl
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -22,4 +24,7 @@ object DatabaseModule {
     @Provides
     @Singleton
     fun provideMarkerDao(database: GeoMarkerDatabase): GeoMarkerDao = database.geoMarkerDao()
+
+    @Provides
+    fun provideGeoMarkerRepository(impl: GeoMarkerRepositoryImpl): GeoMarkerRepository = impl
 }
