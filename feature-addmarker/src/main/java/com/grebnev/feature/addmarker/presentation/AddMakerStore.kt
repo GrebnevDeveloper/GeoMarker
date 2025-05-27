@@ -89,7 +89,7 @@ class AddMarkerStoreFactory
         }
 
         private inner class ExecutorImpl :
-            CoroutineExecutor<AddMarkerStore.Intent, Action, AddMarkerStore.State, Msg, AddMarkerStore.Label>() {
+            CoroutineExecutor<Intent, Action, State, Msg, Label>() {
             override fun executeIntent(intent: AddMarkerStore.Intent) {
                 when (intent) {
                     is AddMarkerStore.Intent.TitleChanged ->
