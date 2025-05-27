@@ -12,8 +12,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.LocationDisabled
 import androidx.compose.material.icons.rounded.LocationOff
+import androidx.compose.material.icons.rounded.LocationSearching
 import androidx.compose.material.icons.rounded.MyLocation
-import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.Remove
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FloatingActionButton
@@ -275,9 +275,9 @@ private fun LocationButton(
 ) {
     val icon =
         when {
-            !hasPermission -> Icons.Rounded.LocationDisabled
-            state is MapStore.State.LocationState.Loading -> Icons.Rounded.Refresh
-            state is MapStore.State.LocationState.Error -> Icons.Rounded.LocationOff
+            !hasPermission -> Icons.Rounded.LocationOff
+            state is MapStore.State.LocationState.Loading -> Icons.Rounded.LocationSearching
+            state is MapStore.State.LocationState.Error -> Icons.Rounded.LocationDisabled
             else -> Icons.Rounded.MyLocation
         }
     FloatingActionButton(

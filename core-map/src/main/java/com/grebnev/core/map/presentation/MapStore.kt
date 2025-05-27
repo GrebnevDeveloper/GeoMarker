@@ -37,6 +37,7 @@ interface MapStore : Store<Intent, State, Label> {
         val locationState: LocationState,
         val cameraPosition: CameraPosition?,
         val isFirstLocation: Boolean,
+        val timeUpdate: Long,
     ) {
         sealed interface LocationState {
             data object Initial : LocationState
@@ -75,6 +76,7 @@ class MapStoreFactory
                             locationState = MapStore.State.LocationState.Initial,
                             cameraPosition = null,
                             isFirstLocation = true,
+                            timeUpdate = 0L,
                         ),
                     bootstrapper = BootstrapperImpl(),
                     executorFactory = ::ExecutorImpl,
@@ -88,6 +90,10 @@ class MapStoreFactory
 
             data class CameraPositionChanged(
                 val position: CameraPosition,
+            ) : Action
+
+            data class TimeUpdateChanged(
+                val timeUpdate: Long,
             ) : Action
         }
 
@@ -103,6 +109,10 @@ class MapStoreFactory
             data class FirstLocationDetected(
                 val point: Point,
             ) : Msg
+
+            data class TimeUpdateChanged(
+                val timeUpdate: Long,
+            ) : Msg
         }
 
         private inner class BootstrapperImpl : CoroutineBootstrapper<Action>() {
@@ -111,8 +121,12 @@ class MapStoreFactory
                     getCurrentLocation().collect { location ->
                         val state =
                             when (location) {
-                                is LocationStatus.Available ->
+                                is LocationStatus.Available -> {
+                                    val timeUpdate = System.currentTimeMillis()
+                                    dispatch(Action.TimeUpdateChanged(timeUpdate))
+
                                     MapStore.State.LocationState.Available(location.point)
+                                }
 
                                 is LocationStatus.Loading ->
                                     MapStore.State.LocationState.Loading
@@ -194,12 +208,22 @@ class MapStoreFactory
 
                     is Action.LocationStateChanged -> {
                         if (state().isFirstLocation &&
-                            action.state is MapStore.State.LocationState.Available
+                            action.state is State.LocationState.Available
                         ) {
                             dispatch(Msg.FirstLocationDetected(action.state.point))
                         }
+
+                        val currentTime = System.currentTimeMillis()
+                        if (action.state is State.LocationState.Error &&
+                            currentTime - state().timeUpdate < DELTA_CURRENT_AND_LAST_UPDATE_IN_MILLIS
+                        ) {
+                            return
+                        }
                         dispatch(Msg.LocationStateChanged(action.state))
                     }
+
+                    is Action.TimeUpdateChanged ->
+                        dispatch(Msg.TimeUpdateChanged(action.timeUpdate))
                 }
             }
         }
@@ -218,6 +242,10 @@ class MapStoreFactory
                             isFirstLocation = false,
                             cameraPosition = CameraPosition(msg.point, DEFAULT_ZOOM_LEVEL, 0f, 0f),
                         )
+
+                    is Msg.TimeUpdateChanged -> {
+                        copy(timeUpdate = msg.timeUpdate)
+                    }
                 }
         }
 
@@ -225,5 +253,6 @@ class MapStoreFactory
             private const val DEFAULT_ZOOM_LEVEL = 15f
             private const val MIN_ZOOM = 1f
             private const val MAX_ZOOM = 20f
+            private const val DELTA_CURRENT_AND_LAST_UPDATE_IN_MILLIS = 30_000L
         }
     }

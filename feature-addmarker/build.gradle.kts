@@ -27,11 +27,15 @@ android {
 }
 
 dependencies {
+    implementation(project(":core-extensions"))
+    implementation(project(":core-database"))
+    implementation(project(":core-domain"))
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity.compose)
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.bundles.ui)
+    implementation(libs.yandex.mapkit.sdk)
     implementation(libs.bundles.mvikotlin)
     implementation(libs.bundles.decompose)
     implementation(libs.hilt.android)
