@@ -3,7 +3,7 @@ package com.grebnev.geomarker.navigation
 import androidx.compose.runtime.Composable
 import com.arkivanov.decompose.extensions.compose.stack.Children
 import com.grebnev.feature.addmarker.presentation.AddMarkerContent
-import com.grebnev.feature.geomarker.GeoMarkerContent
+import com.grebnev.feature.geomarker.presentation.GeoMarkerContent
 import com.grebnev.geomarker.ui.theme.GeoMarkerTheme
 
 @Composable

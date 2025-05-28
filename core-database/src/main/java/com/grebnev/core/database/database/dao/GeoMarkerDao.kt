@@ -5,6 +5,7 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import com.grebnev.core.database.database.model.GeoMarkerDbModel
+import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface GeoMarkerDao {
@@ -12,7 +13,7 @@ interface GeoMarkerDao {
     suspend fun addToMarker(marker: GeoMarkerDbModel)
 
     @Query("SELECT * FROM geo_marker")
-    suspend fun getMarkers(): List<GeoMarkerDbModel>?
+    fun getMarkers(): Flow<List<GeoMarkerDbModel>>
 
     @Query("SELECT * FROM geo_marker WHERE id=:markerId LIMIT 1")
     suspend fun getMarkerById(markerId: Long): GeoMarkerDbModel?

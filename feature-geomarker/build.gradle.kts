@@ -27,6 +27,10 @@ android {
 
 dependencies {
     implementation(project(":core-map"))
+    implementation(project(":core-domain"))
+    implementation(project(":core-database"))
+    implementation(project(":core-extensions"))
+    implementation(project(":feature-bottomsheet-navigation"))
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity.compose)
@@ -34,6 +38,7 @@ dependencies {
     implementation(libs.bundles.ui)
     implementation(libs.androidx.compose.icons)
     implementation(libs.bundles.decompose)
+    implementation(libs.bundles.mvikotlin)
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
     testImplementation(libs.junit)
