@@ -12,6 +12,7 @@ import com.grebnev.feature.listmarkers.DefaultListMarkersComponent
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
+import kotlinx.coroutines.flow.Flow
 import kotlinx.serialization.Serializable
 
 @OptIn(DelicateDecomposeApi::class)
@@ -19,8 +20,7 @@ class DefaultBottomSheetComponent
     @AssistedInject
     constructor(
         private val listMarkersComponentFactory: DefaultListMarkersComponent.Factory,
-        @Assisted private val markers: List<GeoMarker>,
-        @Assisted private val selectedMarker: GeoMarker?,
+        @Assisted markersFlow: Flow<List<GeoMarker>>,
         @Assisted component: ComponentContext,
     ) : BottomSheetComponent,
         ComponentContext by component {
@@ -30,7 +30,7 @@ class DefaultBottomSheetComponent
             childStack(
                 source = navigation,
                 serializer = Config.serializer(),
-                initialConfiguration = Config.ListMarkers,
+                initialConfiguration = Config.ListMarkers(markersFlow),
                 handleBackButton = true,
                 childFactory = ::createChild,
             )
@@ -40,10 +40,10 @@ class DefaultBottomSheetComponent
             componentContext: ComponentContext,
         ): BottomSheetComponent.Child =
             when (config) {
-                Config.ListMarkers -> {
+                is Config.ListMarkers -> {
                     val component =
                         listMarkersComponentFactory.create(
-                            markers = markers,
+                            markersFlow = config.markersFlow,
                             onMarkerSelected = { markerId ->
                                 navigateToDetail(markerId)
                             },
@@ -67,14 +67,15 @@ class DefaultBottomSheetComponent
         @Serializable
         sealed interface Config {
             @Serializable
-            data object ListMarkers : Config
+            data class ListMarkers(
+                val markersFlow: Flow<List<GeoMarker>>,
+            ) : Config
         }
 
         @AssistedFactory
         interface Factory {
             fun create(
-                @Assisted markers: List<GeoMarker>,
-                @Assisted selectedMarker: GeoMarker?,
+                @Assisted markersFlow: Flow<List<GeoMarker>>,
                 @Assisted componentContext: ComponentContext,
             ): DefaultBottomSheetComponent
         }

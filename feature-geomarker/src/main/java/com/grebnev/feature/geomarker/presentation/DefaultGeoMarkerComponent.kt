@@ -58,8 +58,7 @@ class DefaultGeoMarkerComponent
 
         override val bottomSheetComponent: BottomSheetComponent =
             bottomSheetComponentFactory.create(
-                markers = model.value.markers,
-                selectedMarker = model.value.selectedMarker,
+                markersFlow = model.value.markersFlow,
                 componentContext = childContext("BottomSheetComponent"),
             )
 

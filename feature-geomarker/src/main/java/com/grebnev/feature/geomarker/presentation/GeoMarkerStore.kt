@@ -10,7 +10,8 @@ import com.grebnev.feature.geomarker.domain.GetGeoMarkersUseCase
 import com.grebnev.feature.geomarker.presentation.GeoMarkerStore.Intent
 import com.grebnev.feature.geomarker.presentation.GeoMarkerStore.Label
 import com.grebnev.feature.geomarker.presentation.GeoMarkerStore.State
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emptyFlow
 import javax.inject.Inject
 
 interface GeoMarkerStore : Store<Intent, State, Label> {
@@ -27,7 +28,7 @@ interface GeoMarkerStore : Store<Intent, State, Label> {
     }
 
     data class State(
-        val markers: List<GeoMarker> = emptyList(),
+        val markersFlow: Flow<List<GeoMarker>> = emptyFlow(),
         val selectedMarker: GeoMarker? = null,
     )
 
@@ -64,13 +65,13 @@ class GeoMarkersStoreFactory
 
         private sealed interface Action {
             data class MarkersLoaded(
-                val markers: List<GeoMarker>,
+                val markersFlow: Flow<List<GeoMarker>>,
             ) : Action
         }
 
         private sealed interface Msg {
             data class MarkersLoaded(
-                val markers: List<GeoMarker>,
+                val markersFlow: Flow<List<GeoMarker>>,
             ) : Msg
 
             data class MarkerSelected(
@@ -84,11 +85,8 @@ class GeoMarkersStoreFactory
 
         private inner class BootstrapperImpl : CoroutineBootstrapper<Action>() {
             override fun invoke() {
-                scope.launch {
-                    getGeoMarkersUseCase().collect { markers ->
-                        dispatch(Action.MarkersLoaded(markers))
-                    }
-                }
+                val markersFlow = getGeoMarkersUseCase()
+                dispatch(Action.MarkersLoaded(markersFlow))
             }
         }
 
@@ -114,7 +112,7 @@ class GeoMarkersStoreFactory
             override fun executeAction(action: Action) {
                 when (action) {
                     is Action.MarkersLoaded -> {
-                        dispatch(Msg.MarkersLoaded(action.markers))
+                        dispatch(Msg.MarkersLoaded(action.markersFlow))
                     }
                 }
             }
@@ -125,12 +123,12 @@ class GeoMarkersStoreFactory
                 when (msg) {
                     is Msg.MarkersLoaded ->
                         copy(
-                            markers = msg.markers,
+                            markersFlow = msg.markersFlow,
                         )
 
                     is Msg.MarkerSelected ->
                         copy(
-                            selectedMarker = markers.firstOrNull { it.id == msg.markerId },
+                            selectedMarker = null,
                         )
 
                     is Msg.MarkerDeselected ->
