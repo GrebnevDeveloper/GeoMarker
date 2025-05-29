@@ -1,7 +1,8 @@
 [versions]
-agp = "8.10.0"
+agp = "8.10.1"
 kotlin = "2.1.21"
 coreKtx = "1.16.0"
+kotlinxSerializationCore = "1.7.3"
 ksp = "2.1.21-2.0.1"
 junit = "4.13.2"
 junitVersion = "1.2.1"
@@ -21,6 +22,8 @@ hilt = "2.56.1"
 serialization = "1.8.1"
 jetbrainsKotlinJvm = "2.1.21"
 room = "2.7.1"
+appcompat = "1.7.0"
+material = "1.12.0"
 
 [libraries]
 androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "coreKtx" }
@@ -38,6 +41,7 @@ androidx-ui-tooling-preview = { module = "androidx.compose.ui:ui-tooling-preview
 androidx-ui-test-manifest = { module = "androidx.compose.ui:ui-test-manifest" }
 androidx-ui-test-junit4 = { module = "androidx.compose.ui:ui-test-junit4" }
 androidx-material3 = { module = "androidx.compose.material3:material3" }
+kotlinx-serialization-core = { module = "org.jetbrains.kotlinx:kotlinx-serialization-core", version.ref = "kotlinxSerializationCore" }
 ktlint-rules = { module = "com.pinterest.ktlint:ktlint-ruleset-standard", version.ref = "ktlint" }
 yandex-mapkit-sdk = { module = "com.yandex.android:maps.mobile", version.ref = "mapKitSkd" }
 mvikotlin-core = { module = "com.arkivanov.mvikotlin:mvikotlin", version.ref = "mvikotlin" }
@@ -55,6 +59,8 @@ serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-jso
 room-core = { group = "androidx.room", name = "room-runtime", version.ref = "room" }
 room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "room" }
 room-coroutines = { group = "androidx.room", name = "room-ktx", version.ref = "room" }
+androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" }
+material = { group = "com.google.android.material", name = "material", version.ref = "material" }
 
 [bundles]
 ui = ["androidx-ui", "androidx-ui-graphics", "androidx-ui-tooling", "androidx-ui-tooling-preview", "androidx-material3"]

@@ -1,5 +1,8 @@
 package com.grebnev.core.domain.entity
 
+import kotlinx.serialization.Serializable
+
+@Serializable
 data class GeoMarker(
     val id: Long = 0,
     val title: String,

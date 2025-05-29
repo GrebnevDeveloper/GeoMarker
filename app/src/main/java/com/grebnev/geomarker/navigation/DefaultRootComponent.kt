@@ -9,7 +9,7 @@ import com.arkivanov.decompose.router.stack.pop
 import com.arkivanov.decompose.router.stack.push
 import com.arkivanov.decompose.value.Value
 import com.grebnev.feature.addmarker.presentation.DefaultAddMarkerComponent
-import com.grebnev.feature.geomarker.DefaultGeoMarkerComponent
+import com.grebnev.feature.geomarker.presentation.DefaultGeoMarkerComponent
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
