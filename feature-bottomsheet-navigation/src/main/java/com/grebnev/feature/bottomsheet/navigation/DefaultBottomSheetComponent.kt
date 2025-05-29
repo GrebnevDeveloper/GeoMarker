@@ -6,8 +6,12 @@ import com.arkivanov.decompose.router.stack.ChildStack
 import com.arkivanov.decompose.router.stack.StackNavigation
 import com.arkivanov.decompose.router.stack.childStack
 import com.arkivanov.decompose.router.stack.pop
+import com.arkivanov.decompose.router.stack.push
 import com.arkivanov.decompose.value.Value
 import com.grebnev.core.domain.entity.GeoMarker
+import com.grebnev.feature.bottomsheet.navigation.BottomSheetComponent.Child.DetailsMarker
+import com.grebnev.feature.bottomsheet.navigation.BottomSheetComponent.Child.ListMarkers
+import com.grebnev.feature.detailsmarker.DefaultDetailsMarkerComponent
 import com.grebnev.feature.listmarkers.DefaultListMarkersComponent
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedFactory
@@ -20,6 +24,7 @@ class DefaultBottomSheetComponent
     @AssistedInject
     constructor(
         private val listMarkersComponentFactory: DefaultListMarkersComponent.Factory,
+        private val detailsMarkerComponentFactory: DefaultDetailsMarkerComponent.Factory,
         @Assisted markersFlow: Flow<List<GeoMarker>>,
         @Assisted component: ComponentContext,
     ) : BottomSheetComponent,
@@ -44,16 +49,29 @@ class DefaultBottomSheetComponent
                     val component =
                         listMarkersComponentFactory.create(
                             markersFlow = config.markersFlow,
-                            onMarkerSelected = { markerId ->
-                                navigateToDetail(markerId)
+                            onMarkerSelected = { marker ->
+                                navigateToDetail(marker)
                             },
                             component = componentContext,
                         )
-                    BottomSheetComponent.Child.ListMarkers(component)
+                    ListMarkers(component)
+                }
+
+                is Config.DetailsMarker -> {
+                    val component =
+                        detailsMarkerComponentFactory.create(
+                            marker = config.marker,
+                            onBackClicked = {
+                                onBackPressed()
+                            },
+                            component = componentContext,
+                        )
+                    DetailsMarker(component)
                 }
             }
 
-        override fun navigateToDetail(markerId: Long) {
+        override fun navigateToDetail(marker: GeoMarker) {
+            navigation.push(Config.DetailsMarker(marker))
         }
 
         override fun onBackPressed(): Boolean =
@@ -69,6 +87,11 @@ class DefaultBottomSheetComponent
             @Serializable
             data class ListMarkers(
                 val markersFlow: Flow<List<GeoMarker>>,
+            ) : Config
+
+            @Serializable
+            data class DetailsMarker(
+                val marker: GeoMarker,
             ) : Config
         }
 

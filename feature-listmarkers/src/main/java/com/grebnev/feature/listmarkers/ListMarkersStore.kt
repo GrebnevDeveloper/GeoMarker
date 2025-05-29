@@ -16,7 +16,7 @@ import javax.inject.Inject
 interface ListMarkersStore : Store<Intent, State, Label> {
     sealed interface Intent {
         data class MarkerClicked(
-            val markerId: Long,
+            val marker: GeoMarker,
         ) : Intent
     }
 
@@ -26,7 +26,7 @@ interface ListMarkersStore : Store<Intent, State, Label> {
 
     sealed interface Label {
         data class MarkerClicked(
-            val markerId: Long,
+            val marker: GeoMarker,
         ) : Label
     }
 }
@@ -75,7 +75,7 @@ class ListMarkersStoreFactory
             override fun executeIntent(intent: Intent) {
                 when (intent) {
                     is Intent.MarkerClicked -> {
-                        publish(Label.MarkerClicked(intent.markerId))
+                        publish(Label.MarkerClicked(intent.marker))
                     }
                 }
             }

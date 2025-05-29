@@ -1,6 +1,6 @@
 @file:OptIn(ExperimentalCoroutinesApi::class)
 
-package com.grebnev.feature.listmarkers
+package com.grebnev.feature.detailsmarker
 
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.MutableValue
@@ -14,22 +14,21 @@ import dagger.assisted.Assisted
 import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
 
-class DefaultListMarkersComponent
+class DefaultDetailsMarkerComponent
     @AssistedInject
     constructor(
-        private val listMarkersStoreFactory: ListMarkersStoreFactory,
-        @Assisted private val markersFlow: Flow<List<GeoMarker>>,
-        @Assisted private val onMarkerSelected: (GeoMarker) -> Unit,
+        private val detailsStoreFactory: DetailsMarkerStoreFactory,
+        @Assisted private val marker: GeoMarker,
+        @Assisted private val onBackClicked: () -> Unit,
         @Assisted component: ComponentContext,
-    ) : ListMarkersComponent,
+    ) : DetailsMarkerComponent,
         ComponentContext by component {
-        private val store = instanceKeeper.getStore { listMarkersStoreFactory.create(markersFlow) }
+        private val store = instanceKeeper.getStore { detailsStoreFactory.create(marker) }
 
         private val _model = MutableValue(store.state)
-        override val model: Value<ListMarkersStore.State> = _model
+        override val model: Value<DetailsMarkerStore.State> = _model
 
         init {
             componentScope().launch {
@@ -40,22 +39,24 @@ class DefaultListMarkersComponent
             componentScope().launch {
                 store.labels.collect { label ->
                     when (label) {
-                        is ListMarkersStore.Label.MarkerClicked -> onMarkerSelected(label.marker)
+                        DetailsMarkerStore.Label.BackClicked -> {
+                            onBackClicked()
+                        }
                     }
                 }
             }
         }
 
-        override fun onIntent(intent: ListMarkersStore.Intent) {
+        override fun onIntent(intent: DetailsMarkerStore.Intent) {
             store.accept(intent)
         }
 
         @AssistedFactory
         interface Factory {
             fun create(
-                @Assisted markersFlow: Flow<List<GeoMarker>>,
-                @Assisted onMarkerSelected: (GeoMarker) -> Unit,
+                @Assisted marker: GeoMarker,
+                @Assisted onBackClicked: () -> Unit,
                 @Assisted component: ComponentContext,
-            ): DefaultListMarkersComponent
+            ): DefaultDetailsMarkerComponent
         }
     }

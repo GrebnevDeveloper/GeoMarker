@@ -26,6 +26,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.grebnev.core.domain.entity.GeoMarker
@@ -38,24 +39,42 @@ fun ListMarkersContent(
     val state by component.model.subscribeAsState()
     val scrollState = rememberLazyListState()
 
-    Box(modifier = modifier.fillMaxSize()) {
-        if (state.markers.isEmpty()) {
-            EmptyStateView(modifier = Modifier.align(Alignment.Center))
-        } else {
-            LazyColumn(
-                state = scrollState,
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(vertical = 8.dp),
-            ) {
-                items(
-                    items = state.markers,
-                    key = { it.id },
-                ) { marker ->
-                    MarkerListItem(
-                        marker = marker,
-                        onClick = { component.onIntent(ListMarkersStore.Intent.MarkerClicked(marker.id)) },
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
-                    )
+    Column(
+        modifier =
+            modifier
+                .fillMaxSize()
+                .padding(16.dp),
+    ) {
+        Text(
+            text = stringResource(R.string.places_nearby),
+            style = MaterialTheme.typography.headlineMedium,
+            modifier = Modifier.padding(start = 16.dp),
+        )
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier =
+                modifier
+                    .weight(1f)
+                    .fillMaxWidth(),
+        ) {
+            if (state.markers.isEmpty()) {
+                EmptyStateView()
+            } else {
+                LazyColumn(
+                    state = scrollState,
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(vertical = 8.dp),
+                ) {
+                    items(
+                        items = state.markers,
+                        key = { it.id },
+                    ) { marker ->
+                        MarkerListItem(
+                            marker = marker,
+                            onClick = { component.onIntent(ListMarkersStore.Intent.MarkerClicked(marker)) },
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                        )
+                    }
                 }
             }
         }
@@ -77,7 +96,7 @@ private fun MarkerListItem(
     ) {
         Row(
             modifier =
-                modifier
+                Modifier
                     .fillMaxWidth()
                     .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -86,10 +105,10 @@ private fun MarkerListItem(
                 imageVector = Icons.Default.LocationOn,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.primary,
-                modifier = modifier.size(24.dp),
+                modifier = Modifier.size(24.dp),
             )
 
-            Spacer(modifier = modifier.width(16.dp))
+            Spacer(modifier = Modifier.width(16.dp))
 
             Text(
                 text = marker.title,
@@ -111,11 +130,11 @@ private fun EmptyStateView(modifier: Modifier = Modifier) {
             imageVector = Icons.Default.Info,
             contentDescription = null,
             tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
-            modifier = modifier.size(48.dp),
+            modifier = Modifier.size(48.dp),
         )
-        Spacer(modifier = modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(16.dp))
         Text(
-            text = "No markers available",
+            text = stringResource(R.string.no_markers_available),
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
         )
