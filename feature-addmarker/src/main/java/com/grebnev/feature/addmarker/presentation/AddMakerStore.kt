@@ -12,6 +12,7 @@ import com.grebnev.feature.addmarker.presentation.AddMarkerStore.State
 import com.yandex.mapkit.geometry.Point
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import kotlin.random.Random
 
 interface AddMarkerStore : Store<Intent, State, Label> {
     sealed interface Intent {
@@ -65,7 +66,11 @@ class AddMarkerStoreFactory
                             AddMarkerStore.State(
                                 title = "",
                                 description = "",
-                                location = Point(56.875676, 53.186211),
+                                location =
+                                    Point(
+                                        Random.nextDouble(56.7, 56.9),
+                                        Random.nextDouble(53.1, 53.2),
+                                    ),
                                 validationErrors = emptyList(),
                             ),
                         executorFactory = ::ExecutorImpl,

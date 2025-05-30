@@ -53,6 +53,7 @@ class DefaultGeoMarkerComponent
 
         override val mapComponent: MapComponent =
             mapComponentFactory.create(
+                markersFlow = model.value.markersFlow,
                 componentContext = childContext("MapComponent"),
             )
 

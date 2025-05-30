@@ -5,11 +5,13 @@ import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.mvikotlin.core.instancekeeper.getStore
 import com.arkivanov.mvikotlin.extensions.coroutines.stateFlow
+import com.grebnev.core.domain.entity.GeoMarker
 import com.grebnev.core.extensions.componentScope
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -17,10 +19,11 @@ class DefaultMapComponent
     @AssistedInject
     constructor(
         private val mapStoreFactory: MapStoreFactory,
+        @Assisted markersFlow: Flow<List<GeoMarker>>,
         @Assisted componentContext: ComponentContext,
     ) : MapComponent,
         ComponentContext by componentContext {
-        private val store = instanceKeeper.getStore { mapStoreFactory.create() }
+        private val store = instanceKeeper.getStore { mapStoreFactory.create(markersFlow) }
 
         private val _model = MutableValue(store.stateFlow.value)
         override val model: Value<MapStore.State> = _model
@@ -40,6 +43,7 @@ class DefaultMapComponent
         @AssistedFactory
         interface Factory {
             fun create(
+                @Assisted markersFlow: Flow<List<GeoMarker>>,
                 @Assisted componentContext: ComponentContext,
             ): DefaultMapComponent
         }

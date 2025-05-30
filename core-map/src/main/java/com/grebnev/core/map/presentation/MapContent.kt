@@ -2,6 +2,8 @@ package com.grebnev.core.map.presentation
 
 import android.Manifest
 import android.content.Context
+import android.graphics.Bitmap
+import androidx.annotation.DrawableRes
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -31,21 +33,28 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.core.content.ContextCompat
+import androidx.core.graphics.createBitmap
+import androidx.core.graphics.drawable.toBitmap
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.arkivanov.decompose.extensions.compose.stack.animation.scale
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
+import com.grebnev.core.domain.entity.GeoMarker
 import com.grebnev.core.map.R
 import com.grebnev.core.map.extensions.hasSignificantDifferenceFrom
 import com.grebnev.core.permissions.PermissionRequired
 import com.yandex.mapkit.Animation
 import com.yandex.mapkit.MapKitFactory
+import com.yandex.mapkit.geometry.Point
 import com.yandex.mapkit.map.CameraListener
 import com.yandex.mapkit.map.CameraPosition
 import com.yandex.mapkit.map.CameraUpdateReason
 import com.yandex.mapkit.map.Map
+import com.yandex.mapkit.map.TextStyle
 import com.yandex.mapkit.mapview.MapView
 import com.yandex.runtime.image.ImageProvider
 
@@ -112,6 +121,16 @@ fun MapContent(
                 onMoveToMyLocation = { component.onIntent(MapStore.Intent.MoveToMyLocation) },
                 onChangeZoom = { delta -> component.onIntent(MapStore.Intent.ChangeZoom(delta)) },
             )
+
+            GeoMarkers(
+                context = context,
+                mapView = mapView,
+                markers = state.markers,
+                selectedMarkerId = state.selectedMarkerId,
+                onMarkerClick = { marker ->
+                    component.onIntent(MapStore.Intent.MarkerClicked(marker.id))
+                },
+            )
         }
     }
 
@@ -120,6 +139,71 @@ fun MapContent(
             component.onIntent(MapStore.Intent.StopLocationUpdates)
         }
     }
+}
+
+@Composable
+private fun GeoMarkers(
+    context: Context,
+    mapView: MapView,
+    markers: List<GeoMarker>,
+    selectedMarkerId: Long?,
+    onMarkerClick: (GeoMarker) -> Unit,
+) {
+    val map = mapView.mapWindow.map
+    val markersCollection = remember { map.mapObjects.addCollection() }
+
+    LaunchedEffect(
+        key1 = markers,
+        key2 = selectedMarkerId,
+    ) {
+        markersCollection.clear()
+
+        markers.forEach { marker ->
+            val isSelected = marker.id == selectedMarkerId
+            val iconScale = if (isSelected) 1.5f else 1f
+            val icon = createScaledIcon(context, R.drawable.ic_marker, iconScale)
+            val placemark =
+                markersCollection.addPlacemark().apply {
+                    geometry = Point(marker.latitude, marker.longitude)
+                    setIcon(icon)
+                    setText(
+                        marker.title,
+                        TextStyle().apply {
+                            size = if (isSelected) 12f else 10f
+                            placement = TextStyle.Placement.BOTTOM
+                            offset = 5f
+                        },
+                    )
+                    addTapListener { _, _ ->
+                        onMarkerClick(marker)
+                        true
+                    }
+                }
+
+            placemark.userData = marker.id
+        }
+    }
+}
+
+private fun createScaledIcon(
+    context: Context,
+    @DrawableRes iconRes: Int,
+    scale: Float,
+): ImageProvider {
+    val originalBitmap = ContextCompat.getDrawable(context, iconRes)?.toBitmap() ?: createBitmap(1, 1)
+
+    val scaledWidth = (originalBitmap.width * scale).toInt()
+    val scaledHeight = (originalBitmap.height * scale).toInt()
+
+    val scaledBitmap =
+        Bitmap.createScaledBitmap(
+            originalBitmap,
+            scaledWidth,
+            scaledHeight,
+            true,
+        )
+
+    return ImageProvider.fromBitmap(scaledBitmap)
 }
 
 @Composable
@@ -197,12 +281,13 @@ private fun CurrentLocationMarker(
     locationState: MapStore.State.LocationState,
 ) {
     val map = mapView.mapWindow.map
+    val locationCollection = remember { map.mapObjects.addCollection() }
 
     LaunchedEffect(locationState) {
         when (locationState) {
             is MapStore.State.LocationState.Available -> {
-                map.mapObjects.clear()
-                map.mapObjects.addPlacemark().apply {
+                locationCollection.clear()
+                locationCollection.addPlacemark().apply {
                     geometry = locationState.point
                     setIcon(ImageProvider.fromResource(context, R.drawable.ic_my_location))
                 }
