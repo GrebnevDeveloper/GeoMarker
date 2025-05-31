@@ -8,5 +8,5 @@ interface GeoMarkerRepository {
 
     fun getGeoMarkers(): Flow<List<GeoMarker>>
 
-    suspend fun getGeoMarkerById(markerId: Long): GeoMarker
+    fun getGeoMarkerById(markerId: Long): Flow<GeoMarker>
 }

@@ -1,4 +1,4 @@
-package com.grebnev.feature.detailsmarker
+package com.grebnev.feature.detailsmarker.presentation
 
 import com.arkivanov.decompose.value.Value
 

@@ -20,7 +20,6 @@ class GeoMarkerRepositoryImpl
         override fun getGeoMarkers(): Flow<List<GeoMarker>> =
             geoMarkerDao.getMarkers().map { it.toGeoMarkers() }
 
-        override suspend fun getGeoMarkerById(markerId: Long): GeoMarker =
-            geoMarkerDao.getMarkerById(markerId)?.toGeoMarker()
-                ?: throw NoSuchElementException("Marker with id $markerId not found")
+        override fun getGeoMarkerById(markerId: Long): Flow<GeoMarker> =
+            geoMarkerDao.getMarkerById(markerId).map { it.toGeoMarker() }
     }

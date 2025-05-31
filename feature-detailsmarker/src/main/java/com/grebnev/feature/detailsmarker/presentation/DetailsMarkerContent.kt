@@ -1,4 +1,4 @@
-package com.grebnev.feature.detailsmarker
+package com.grebnev.feature.detailsmarker.presentation
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -19,6 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
+import com.grebnev.feature.detailsmarker.R
 
 @Composable
 fun DetailsMarkerContent(
@@ -47,7 +48,7 @@ fun DetailsMarkerContent(
                 )
             }
             Text(
-                text = state.marker.title,
+                text = state.marker?.title ?: "",
                 style = MaterialTheme.typography.headlineMedium,
                 modifier = Modifier.padding(start = 16.dp),
             )
@@ -60,7 +61,7 @@ fun DetailsMarkerContent(
         )
 
         Text(
-            text = state.marker.description,
+            text = state.marker?.description ?: "",
             style = MaterialTheme.typography.bodyMedium,
         )
     }

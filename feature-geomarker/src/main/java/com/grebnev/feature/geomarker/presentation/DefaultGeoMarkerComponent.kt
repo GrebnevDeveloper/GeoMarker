@@ -44,8 +44,6 @@ class DefaultGeoMarkerComponent
                 store.labels.collect { label ->
                     when (label) {
                         GeoMarkerStore.Label.AddMarkerClicked -> onAddMarkerClicked()
-                        is GeoMarkerStore.Label.MarkerDeselected -> TODO()
-                        is GeoMarkerStore.Label.MarkerSelected -> TODO()
                     }
                 }
             }
@@ -60,6 +58,8 @@ class DefaultGeoMarkerComponent
         override val bottomSheetComponent: BottomSheetComponent =
             bottomSheetComponentFactory.create(
                 markersFlow = model.value.markersFlow,
+                selectedMarkerIdFlow = model.value.selectedMarkerId,
+                onMarkerSelected = { markerId -> store.accept(GeoMarkerStore.Intent.SelectMarker(markerId)) },
                 componentContext = childContext("BottomSheetComponent"),
             )
 

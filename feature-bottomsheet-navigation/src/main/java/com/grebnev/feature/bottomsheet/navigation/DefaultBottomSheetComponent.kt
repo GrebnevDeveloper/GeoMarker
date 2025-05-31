@@ -7,16 +7,20 @@ import com.arkivanov.decompose.router.stack.StackNavigation
 import com.arkivanov.decompose.router.stack.childStack
 import com.arkivanov.decompose.router.stack.pop
 import com.arkivanov.decompose.router.stack.push
+import com.arkivanov.decompose.router.stack.replaceCurrent
 import com.arkivanov.decompose.value.Value
 import com.grebnev.core.domain.entity.GeoMarker
+import com.grebnev.core.extensions.componentScope
 import com.grebnev.feature.bottomsheet.navigation.BottomSheetComponent.Child.DetailsMarker
 import com.grebnev.feature.bottomsheet.navigation.BottomSheetComponent.Child.ListMarkers
-import com.grebnev.feature.detailsmarker.DefaultDetailsMarkerComponent
+import com.grebnev.feature.detailsmarker.presentation.DefaultDetailsMarkerComponent
 import com.grebnev.feature.listmarkers.DefaultListMarkersComponent
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 
 @OptIn(DelicateDecomposeApi::class)
@@ -26,10 +30,14 @@ class DefaultBottomSheetComponent
         private val listMarkersComponentFactory: DefaultListMarkersComponent.Factory,
         private val detailsMarkerComponentFactory: DefaultDetailsMarkerComponent.Factory,
         @Assisted markersFlow: Flow<List<GeoMarker>>,
+        @Assisted selectedMarkerIdFlow: StateFlow<Long?>,
+        @Assisted private val onMarkerSelected: (Long?) -> Unit,
         @Assisted component: ComponentContext,
     ) : BottomSheetComponent,
         ComponentContext by component {
         private val navigation = StackNavigation<Config>()
+
+        private val scope = componentScope()
 
         override val stack: Value<ChildStack<*, BottomSheetComponent.Child>> =
             childStack(
@@ -39,6 +47,36 @@ class DefaultBottomSheetComponent
                 handleBackButton = true,
                 childFactory = ::createChild,
             )
+
+        init {
+            scope.launch {
+                selectedMarkerIdFlow.collect { markerId ->
+                    handleMarkerSelection(markerId)
+                }
+            }
+        }
+
+        private fun handleMarkerSelection(markerId: Long?) {
+            val currentStack = stack.value
+            val currentTop = currentStack.active.configuration
+
+            when {
+                markerId == null -> {
+                    if (currentTop is Config.DetailsMarker) {
+                        navigation.pop()
+                    }
+                }
+                currentTop is Config.DetailsMarker && currentTop.markerId == markerId -> {
+                    return
+                }
+                currentTop is Config.DetailsMarker -> {
+                    navigation.replaceCurrent(Config.DetailsMarker(markerId))
+                }
+                else -> {
+                    navigation.push(Config.DetailsMarker(markerId))
+                }
+            }
+        }
 
         private fun createChild(
             config: Config,
@@ -50,7 +88,7 @@ class DefaultBottomSheetComponent
                         listMarkersComponentFactory.create(
                             markersFlow = config.markersFlow,
                             onMarkerSelected = { marker ->
-                                navigateToDetail(marker)
+                                onMarkerSelected(marker.id)
                             },
                             component = componentContext,
                         )
@@ -60,26 +98,14 @@ class DefaultBottomSheetComponent
                 is Config.DetailsMarker -> {
                     val component =
                         detailsMarkerComponentFactory.create(
-                            marker = config.marker,
+                            markerId = config.markerId,
                             onBackClicked = {
-                                onBackPressed()
+                                onMarkerSelected(null)
                             },
                             component = componentContext,
                         )
                     DetailsMarker(component)
                 }
-            }
-
-        override fun navigateToDetail(marker: GeoMarker) {
-            navigation.push(Config.DetailsMarker(marker))
-        }
-
-        override fun onBackPressed(): Boolean =
-            if (stack.value.backStack.isNotEmpty()) {
-                navigation.pop()
-                true
-            } else {
-                false
             }
 
         @Serializable
@@ -91,7 +117,7 @@ class DefaultBottomSheetComponent
 
             @Serializable
             data class DetailsMarker(
-                val marker: GeoMarker,
+                val markerId: Long,
             ) : Config
         }
 
@@ -99,6 +125,8 @@ class DefaultBottomSheetComponent
         interface Factory {
             fun create(
                 @Assisted markersFlow: Flow<List<GeoMarker>>,
+                @Assisted selectedMarkerIdFlow: StateFlow<Long?>,
+                @Assisted onMarkerSelected: (Long?) -> Unit,
                 @Assisted componentContext: ComponentContext,
             ): DefaultBottomSheetComponent
         }
