@@ -52,6 +52,8 @@ class DefaultGeoMarkerComponent
         override val mapComponent: MapComponent =
             mapComponentFactory.create(
                 markersFlow = model.value.markersFlow,
+                selectedMarkerIdFlow = model.value.selectedMarkerId,
+                onMarkerSelected = { markerId -> store.accept(GeoMarkerStore.Intent.SelectMarker(markerId)) },
                 componentContext = childContext("MapComponent"),
             )
 

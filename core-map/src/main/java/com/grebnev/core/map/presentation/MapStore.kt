@@ -15,6 +15,7 @@ import com.grebnev.core.map.presentation.MapStore.State
 import com.yandex.mapkit.geometry.Point
 import com.yandex.mapkit.map.CameraPosition
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -61,9 +62,9 @@ interface MapStore : Store<Intent, State, Label> {
     }
 
     sealed interface Label {
-        data object PermissionDenied : Label
-
-        data object PermissionGranted : Label
+        data class MarkerSelected(
+            val markerId: Long?,
+        ) : Label
     }
 }
 
@@ -74,7 +75,10 @@ class MapStoreFactory
         private val manageLocationUpdates: ManageLocationUpdatesUseCase,
         private val getCurrentLocation: GetCurrentLocationUseCase,
     ) {
-        fun create(markersFlow: Flow<List<GeoMarker>>): MapStore =
+        fun create(
+            markersFlow: Flow<List<GeoMarker>>,
+            selectedMarkerIdFlow: StateFlow<Long?>,
+        ): MapStore =
             object :
                 MapStore,
                 Store<Intent, State, Label> by storeFactory.create(
@@ -88,7 +92,7 @@ class MapStoreFactory
                             markers = emptyList(),
                             selectedMarkerId = null,
                         ),
-                    bootstrapper = BootstrapperImpl(markersFlow),
+                    bootstrapper = BootstrapperImpl(markersFlow, selectedMarkerIdFlow),
                     executorFactory = ::ExecutorImpl,
                     reducer = ReducerImpl,
                 ) {}
@@ -108,6 +112,10 @@ class MapStoreFactory
 
             data class MarkersUpdated(
                 val markers: List<GeoMarker>,
+            ) : Action
+
+            data class MarkerSelected(
+                val markerId: Long?,
             ) : Action
         }
 
@@ -132,13 +140,14 @@ class MapStoreFactory
                 val markers: List<GeoMarker>,
             ) : Msg
 
-            data class MarkerClicked(
+            data class MarkerSelected(
                 val markerId: Long?,
             ) : Msg
         }
 
         private inner class BootstrapperImpl(
             private val markersFlow: Flow<List<GeoMarker>>,
+            private val selectedMarkerIdFlow: StateFlow<Long?>,
         ) : CoroutineBootstrapper<Action>() {
             override fun invoke() {
                 scope.launch {
@@ -146,6 +155,15 @@ class MapStoreFactory
                 }
                 scope.launch {
                     updateMarkers(markersFlow)
+                }
+                scope.launch {
+                    setSelectedMarker(selectedMarkerIdFlow)
+                }
+            }
+
+            private suspend fun setSelectedMarker(selectedMarkerIdFlow: StateFlow<Long?>) {
+                selectedMarkerIdFlow.collect { markerId ->
+                    dispatch(Action.MarkerSelected(markerId))
                 }
             }
 
@@ -237,7 +255,8 @@ class MapStoreFactory
                     }
 
                     is Intent.MarkerClicked -> {
-                        dispatch(Msg.MarkerClicked(intent.markerId))
+                        dispatch(Msg.MarkerSelected(intent.markerId))
+                        publish(Label.MarkerSelected(intent.markerId))
                     }
                 }
             }
@@ -269,6 +288,10 @@ class MapStoreFactory
                     is Action.MarkersUpdated -> {
                         dispatch(Msg.MarkersLoaded(action.markers))
                     }
+
+                    is Action.MarkerSelected -> {
+                        dispatch(Msg.MarkerSelected(action.markerId))
+                    }
                 }
             }
         }
@@ -296,7 +319,7 @@ class MapStoreFactory
                         copy(markers = msg.markers)
                     }
 
-                    is Msg.MarkerClicked -> {
+                    is Msg.MarkerSelected -> {
                         copy(selectedMarkerId = msg.markerId)
                     }
                 }

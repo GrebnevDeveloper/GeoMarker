@@ -9,6 +9,7 @@ import com.arkivanov.decompose.router.stack.pop
 import com.arkivanov.decompose.router.stack.push
 import com.arkivanov.decompose.router.stack.replaceCurrent
 import com.arkivanov.decompose.value.Value
+import com.arkivanov.essenty.backhandler.BackCallback
 import com.grebnev.core.domain.entity.GeoMarker
 import com.grebnev.core.extensions.componentScope
 import com.grebnev.feature.bottomsheet.navigation.BottomSheetComponent.Child.DetailsMarker
@@ -29,9 +30,9 @@ class DefaultBottomSheetComponent
     constructor(
         private val listMarkersComponentFactory: DefaultListMarkersComponent.Factory,
         private val detailsMarkerComponentFactory: DefaultDetailsMarkerComponent.Factory,
+        @Assisted private val onMarkerSelected: (Long?) -> Unit,
         @Assisted markersFlow: Flow<List<GeoMarker>>,
         @Assisted selectedMarkerIdFlow: StateFlow<Long?>,
-        @Assisted private val onMarkerSelected: (Long?) -> Unit,
         @Assisted component: ComponentContext,
     ) : BottomSheetComponent,
         ComponentContext by component {
@@ -48,10 +49,40 @@ class DefaultBottomSheetComponent
                 childFactory = ::createChild,
             )
 
+        private var backCallback: BackCallback? = null
+
         init {
             scope.launch {
                 selectedMarkerIdFlow.collect { markerId ->
                     handleMarkerSelection(markerId)
+                }
+            }
+            scope.launch {
+                stack.subscribe { childStack ->
+                    updateBackCallback(childStack.active.configuration)
+                }
+            }
+        }
+
+        private fun updateBackCallback(config: Any) {
+            when (config as? Config) {
+                is Config.DetailsMarker -> {
+                    if (backCallback == null) {
+                        backCallback =
+                            BackCallback {
+                                onMarkerSelected(null)
+                                navigation.pop()
+                            }.also {
+                                backHandler.register(it)
+                            }
+                    }
+                }
+
+                else -> {
+                    backCallback?.let {
+                        backHandler.unregister(it)
+                        backCallback = null
+                    }
                 }
             }
         }
