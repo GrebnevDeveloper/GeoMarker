@@ -2,7 +2,6 @@ package com.grebnev.core.map.presentation
 
 import android.Manifest
 import android.content.Context
-import android.graphics.Bitmap
 import androidx.annotation.DrawableRes
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -25,7 +24,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -36,10 +37,10 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.core.graphics.createBitmap
 import androidx.core.graphics.drawable.toBitmap
+import androidx.core.graphics.scale
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import com.arkivanov.decompose.extensions.compose.stack.animation.scale
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
@@ -54,6 +55,9 @@ import com.yandex.mapkit.map.CameraListener
 import com.yandex.mapkit.map.CameraPosition
 import com.yandex.mapkit.map.CameraUpdateReason
 import com.yandex.mapkit.map.Map
+import com.yandex.mapkit.map.MapObjectCollection
+import com.yandex.mapkit.map.MapObjectTapListener
+import com.yandex.mapkit.map.PlacemarkMapObject
 import com.yandex.mapkit.map.TextStyle
 import com.yandex.mapkit.mapview.MapView
 import com.yandex.runtime.image.ImageProvider
@@ -130,6 +134,9 @@ fun MapContent(
                 onMarkerClick = { marker ->
                     component.onIntent(MapStore.Intent.MarkerClicked(marker.id))
                 },
+                updateCameraPosition = { position ->
+                    component.onIntent(MapStore.Intent.UpdateCameraPosition(position))
+                },
             )
         }
     }
@@ -148,42 +155,145 @@ private fun GeoMarkers(
     markers: List<GeoMarker>,
     selectedMarkerId: Long?,
     onMarkerClick: (GeoMarker) -> Unit,
+    updateCameraPosition: (CameraPosition) -> Unit,
 ) {
     val map = mapView.mapWindow.map
     val markersCollection = remember { map.mapObjects.addCollection() }
+    val currentMarkers = remember { mutableMapOf<Long, PlacemarkMapObject>() }
+    val tapListeners = remember { mutableMapOf<Long, MapObjectTapListener>() }
+    var previousSelectedId by remember { mutableStateOf<Long?>(null) }
 
-    LaunchedEffect(
-        key1 = markers,
-        key2 = selectedMarkerId,
-    ) {
-        markersCollection.clear()
+    LaunchedEffect(selectedMarkerId) {
+        selectedMarkerId?.let { id ->
+            markers.find { it.id == id }?.let { marker ->
+                val targetPosition =
+                    CameraPosition(
+                        Point(marker.latitude, marker.longitude),
+                        map.cameraPosition.zoom,
+                        0f,
+                        0f,
+                    )
+                updateCameraPosition(targetPosition)
+            }
+        }
+    }
 
+    LaunchedEffect(markers, selectedMarkerId) {
+        // Удаляем метки, которых нет в новом списке
+        val currentIds = markers.map { it.id }.toSet()
+        val toRemove = currentMarkers.keys.filter { it !in currentIds }
+        toRemove.forEach { id ->
+            currentMarkers[id]?.let { placemark ->
+                tapListeners[id]?.let { listener ->
+                    placemark.removeTapListener(listener) // Удаляем слушатель
+                }
+                markersCollection.remove(placemark)
+            }
+            currentMarkers.remove(id)
+            tapListeners.remove(id) // Чистим мапу слушателей
+        }
+
+        // Сбрасываем предыдущее выделение
+        if (selectedMarkerId != previousSelectedId) {
+            previousSelectedId?.let { oldId ->
+                currentMarkers[oldId]?.let { oldPlacemark ->
+                    updatePlacemark(
+                        context = context,
+                        placemark = oldPlacemark,
+                        marker = markers.find { it.id == oldId } ?: return@let,
+                        isSelected = false,
+                        tapListener = tapListeners[oldId], // Передаём текущий слушатель
+                    )
+                }
+            }
+            previousSelectedId = selectedMarkerId
+        }
+
+        // Обновляем или добавляем новые метки
         markers.forEach { marker ->
             val isSelected = marker.id == selectedMarkerId
-            val iconScale = if (isSelected) 1.5f else 1f
-            val icon = createScaledIcon(context, R.drawable.ic_marker, iconScale)
-            val placemark =
-                markersCollection.addPlacemark().apply {
-                    geometry = Point(marker.latitude, marker.longitude)
-                    setIcon(icon)
-                    setText(
-                        marker.title,
-                        TextStyle().apply {
-                            size = if (isSelected) 12f else 10f
-                            placement = TextStyle.Placement.BOTTOM
-                            offset = 5f
-                        },
-                    )
-                    addTapListener { _, _ ->
-                        onMarkerClick(marker)
-                        true
-                    }
-                }
+            val existingPlacemark = currentMarkers[marker.id]
 
-            placemark.userData = marker.id
+            if (existingPlacemark != null) {
+                updatePlacemark(
+                    context = context,
+                    placemark = existingPlacemark,
+                    marker = marker,
+                    isSelected = isSelected,
+                    tapListener = tapListeners[marker.id],
+                )
+            } else {
+                val tapListener = createTapListener { onMarkerClick(marker) }
+                val placemark =
+                    createPlacemark(
+                        context = context,
+                        collection = markersCollection,
+                        marker = marker,
+                        isSelected = isSelected,
+                        tapListener = tapListener,
+                    )
+                currentMarkers[marker.id] = placemark
+                tapListeners[marker.id] = tapListener // Сохраняем слушатель
+            }
         }
     }
 }
+
+private fun updatePlacemark(
+    context: Context,
+    placemark: PlacemarkMapObject,
+    marker: GeoMarker,
+    isSelected: Boolean,
+    tapListener: MapObjectTapListener?, // Может быть null, если слушатель не меняется
+) {
+    val iconScale = if (isSelected) 1.5f else 1f
+    val icon = createScaledIcon(context, R.drawable.ic_marker, iconScale)
+
+    placemark.apply {
+        geometry = Point(marker.latitude, marker.longitude)
+        setIcon(icon)
+        setText(
+            marker.title,
+            TextStyle().apply {
+                size = if (isSelected) 12f else 10f
+                placement = TextStyle.Placement.BOTTOM
+                offset = 5f
+            },
+        )
+        // Не трогаем слушатель, если он не изменился
+    }
+}
+
+private fun createPlacemark(
+    context: Context,
+    collection: MapObjectCollection,
+    marker: GeoMarker,
+    isSelected: Boolean,
+    tapListener: MapObjectTapListener,
+): PlacemarkMapObject {
+    val iconScale = if (isSelected) 1.5f else 1f
+    val icon = createScaledIcon(context, R.drawable.ic_marker, iconScale)
+
+    return collection.addPlacemark().apply {
+        geometry = Point(marker.latitude, marker.longitude)
+        setIcon(icon)
+        setText(
+            marker.title,
+            TextStyle().apply {
+                size = if (isSelected) 12f else 10f
+                placement = TextStyle.Placement.BOTTOM
+                offset = 5f
+            },
+        )
+        addTapListener(tapListener)
+    }
+}
+
+private fun createTapListener(onClick: () -> Unit): MapObjectTapListener =
+    MapObjectTapListener { _, _ ->
+        onClick()
+        true
+    }
 
 private fun createScaledIcon(
     context: Context,
@@ -195,13 +305,7 @@ private fun createScaledIcon(
     val scaledWidth = (originalBitmap.width * scale).toInt()
     val scaledHeight = (originalBitmap.height * scale).toInt()
 
-    val scaledBitmap =
-        Bitmap.createScaledBitmap(
-            originalBitmap,
-            scaledWidth,
-            scaledHeight,
-            true,
-        )
+    val scaledBitmap = originalBitmap.scale(scaledWidth, scaledHeight)
 
     return ImageProvider.fromBitmap(scaledBitmap)
 }
