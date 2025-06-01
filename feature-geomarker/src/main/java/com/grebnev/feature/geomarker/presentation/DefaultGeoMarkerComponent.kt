@@ -34,18 +34,18 @@ class DefaultGeoMarkerComponent
         private val _model = MutableValue(store.stateFlow.value)
         override val model: Value<GeoMarkerStore.State> = _model
 
+        private val scope = componentScope()
+
         init {
-            componentScope().launch {
+            scope.launch {
                 store.stateFlow.collect { newState ->
                     _model.value = newState
                 }
             }
-            componentScope().launch {
+            scope.launch {
                 store.labels.collect { label ->
                     when (label) {
                         GeoMarkerStore.Label.AddMarkerClicked -> onAddMarkerClicked()
-                        is GeoMarkerStore.Label.MarkerDeselected -> TODO()
-                        is GeoMarkerStore.Label.MarkerSelected -> TODO()
                     }
                 }
             }
@@ -53,12 +53,17 @@ class DefaultGeoMarkerComponent
 
         override val mapComponent: MapComponent =
             mapComponentFactory.create(
+                markersFlow = model.value.markersFlow,
+                selectedMarkerIdFlow = model.value.selectedMarkerId,
+                onMarkerSelected = { markerId -> store.accept(GeoMarkerStore.Intent.SelectMarker(markerId)) },
                 componentContext = childContext("MapComponent"),
             )
 
         override val bottomSheetComponent: BottomSheetComponent =
             bottomSheetComponentFactory.create(
                 markersFlow = model.value.markersFlow,
+                selectedMarkerIdFlow = model.value.selectedMarkerId,
+                onMarkerSelected = { markerId -> store.accept(GeoMarkerStore.Intent.SelectMarker(markerId)) },
                 componentContext = childContext("BottomSheetComponent"),
             )
 

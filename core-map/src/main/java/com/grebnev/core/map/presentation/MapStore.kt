@@ -5,6 +5,7 @@ import com.arkivanov.mvikotlin.core.store.Store
 import com.arkivanov.mvikotlin.core.store.StoreFactory
 import com.arkivanov.mvikotlin.extensions.coroutines.CoroutineBootstrapper
 import com.arkivanov.mvikotlin.extensions.coroutines.CoroutineExecutor
+import com.grebnev.core.domain.entity.GeoMarker
 import com.grebnev.core.location.domain.entity.LocationStatus
 import com.grebnev.core.location.domain.usecase.GetCurrentLocationUseCase
 import com.grebnev.core.location.domain.usecase.ManageLocationUpdatesUseCase
@@ -13,6 +14,8 @@ import com.grebnev.core.map.presentation.MapStore.Label
 import com.grebnev.core.map.presentation.MapStore.State
 import com.yandex.mapkit.geometry.Point
 import com.yandex.mapkit.map.CameraPosition
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -31,6 +34,10 @@ interface MapStore : Store<Intent, State, Label> {
         data class UpdateCameraPosition(
             val position: CameraPosition,
         ) : Intent
+
+        data class MarkerClicked(
+            val markerId: Long,
+        ) : Intent
     }
 
     data class State(
@@ -38,6 +45,8 @@ interface MapStore : Store<Intent, State, Label> {
         val cameraPosition: CameraPosition?,
         val isFirstLocation: Boolean,
         val timeUpdate: Long,
+        val markers: List<GeoMarker>,
+        val selectedMarkerId: Long?,
     ) {
         sealed interface LocationState {
             data object Initial : LocationState
@@ -53,9 +62,9 @@ interface MapStore : Store<Intent, State, Label> {
     }
 
     sealed interface Label {
-        data object PermissionDenied : Label
-
-        data object PermissionGranted : Label
+        data class MarkerSelected(
+            val markerId: Long?,
+        ) : Label
     }
 }
 
@@ -66,26 +75,31 @@ class MapStoreFactory
         private val manageLocationUpdates: ManageLocationUpdatesUseCase,
         private val getCurrentLocation: GetCurrentLocationUseCase,
     ) {
-        fun create(): MapStore =
+        fun create(
+            markersFlow: Flow<List<GeoMarker>>,
+            selectedMarkerIdFlow: StateFlow<Long?>,
+        ): MapStore =
             object :
                 MapStore,
-                Store<MapStore.Intent, MapStore.State, MapStore.Label> by storeFactory.create(
+                Store<Intent, State, Label> by storeFactory.create(
                     name = "MapStore",
                     initialState =
-                        MapStore.State(
-                            locationState = MapStore.State.LocationState.Initial,
+                        State(
+                            locationState = State.LocationState.Initial,
                             cameraPosition = null,
                             isFirstLocation = true,
                             timeUpdate = 0L,
+                            markers = emptyList(),
+                            selectedMarkerId = null,
                         ),
-                    bootstrapper = BootstrapperImpl(),
+                    bootstrapper = BootstrapperImpl(markersFlow, selectedMarkerIdFlow),
                     executorFactory = ::ExecutorImpl,
                     reducer = ReducerImpl,
                 ) {}
 
         private sealed interface Action {
             data class LocationStateChanged(
-                val state: MapStore.State.LocationState,
+                val state: State.LocationState,
             ) : Action
 
             data class CameraPositionChanged(
@@ -95,11 +109,19 @@ class MapStoreFactory
             data class TimeUpdateChanged(
                 val timeUpdate: Long,
             ) : Action
+
+            data class MarkersUpdated(
+                val markers: List<GeoMarker>,
+            ) : Action
+
+            data class MarkerSelected(
+                val markerId: Long?,
+            ) : Action
         }
 
         private sealed interface Msg {
             data class LocationStateChanged(
-                val state: MapStore.State.LocationState,
+                val state: State.LocationState,
             ) : Msg
 
             data class CameraPositionChanged(
@@ -113,53 +135,86 @@ class MapStoreFactory
             data class TimeUpdateChanged(
                 val timeUpdate: Long,
             ) : Msg
+
+            data class MarkersLoaded(
+                val markers: List<GeoMarker>,
+            ) : Msg
+
+            data class MarkerSelected(
+                val markerId: Long?,
+            ) : Msg
         }
 
-        private inner class BootstrapperImpl : CoroutineBootstrapper<Action>() {
+        private inner class BootstrapperImpl(
+            private val markersFlow: Flow<List<GeoMarker>>,
+            private val selectedMarkerIdFlow: StateFlow<Long?>,
+        ) : CoroutineBootstrapper<Action>() {
             override fun invoke() {
                 scope.launch {
-                    getCurrentLocation().collect { location ->
-                        val state =
-                            when (location) {
-                                is LocationStatus.Available -> {
-                                    val timeUpdate = System.currentTimeMillis()
-                                    dispatch(Action.TimeUpdateChanged(timeUpdate))
+                    determineCurrentLocation()
+                }
+                scope.launch {
+                    updateMarkers(markersFlow)
+                }
+                scope.launch {
+                    setSelectedMarker(selectedMarkerIdFlow)
+                }
+            }
 
-                                    MapStore.State.LocationState.Available(location.point)
-                                }
+            private suspend fun setSelectedMarker(selectedMarkerIdFlow: StateFlow<Long?>) {
+                selectedMarkerIdFlow.collect { markerId ->
+                    dispatch(Action.MarkerSelected(markerId))
+                }
+            }
 
-                                is LocationStatus.Loading ->
-                                    MapStore.State.LocationState.Loading
+            private suspend fun updateMarkers(markersFlow: Flow<List<GeoMarker>>) {
+                markersFlow.collect { markers ->
+                    dispatch(Action.MarkersUpdated(markers))
+                }
+            }
 
-                                is LocationStatus.Error ->
-                                    MapStore.State.LocationState.Error
+            private suspend fun determineCurrentLocation() {
+                getCurrentLocation().collect { location ->
+                    val state =
+                        when (location) {
+                            is LocationStatus.Available -> {
+                                val timeUpdate = System.currentTimeMillis()
+                                dispatch(Action.TimeUpdateChanged(timeUpdate))
 
-                                LocationStatus.Initial ->
-                                    MapStore.State.LocationState.Initial
+                                State.LocationState.Available(location.point)
                             }
-                        dispatch(Action.LocationStateChanged(state))
-                    }
+
+                            is LocationStatus.Loading ->
+                                State.LocationState.Loading
+
+                            is LocationStatus.Error ->
+                                State.LocationState.Error
+
+                            LocationStatus.Initial ->
+                                State.LocationState.Initial
+                        }
+                    dispatch(Action.LocationStateChanged(state))
                 }
             }
         }
 
         private inner class ExecutorImpl :
-            CoroutineExecutor<MapStore.Intent, Action, MapStore.State, Msg, MapStore.Label>() {
+            CoroutineExecutor<Intent, Action, State, Msg, Label>() {
             private var lastCameraPosition: CameraPosition? = null
 
-            override fun executeIntent(intent: MapStore.Intent) {
+            override fun executeIntent(intent: Intent) {
                 when (intent) {
-                    MapStore.Intent.StartLocationUpdates -> {
+                    Intent.StartLocationUpdates -> {
                         manageLocationUpdates.startLocationUpdates()
                     }
 
-                    MapStore.Intent.StopLocationUpdates -> {
+                    Intent.StopLocationUpdates -> {
                         manageLocationUpdates.stopLocationUpdates()
                     }
 
-                    MapStore.Intent.MoveToMyLocation -> {
+                    Intent.MoveToMyLocation -> {
                         val currentState = state()
-                        if (currentState.locationState is MapStore.State.LocationState.Available) {
+                        if (currentState.locationState is State.LocationState.Available) {
                             val point = currentState.locationState.point
                             dispatch(
                                 Msg.CameraPositionChanged(
@@ -174,7 +229,7 @@ class MapStoreFactory
                         }
                     }
 
-                    is MapStore.Intent.ChangeZoom -> {
+                    is Intent.ChangeZoom -> {
                         val currentPosition = state().cameraPosition
                         if (currentPosition != null) {
                             val newZoom =
@@ -192,11 +247,16 @@ class MapStoreFactory
                         }
                     }
 
-                    is MapStore.Intent.UpdateCameraPosition -> {
+                    is Intent.UpdateCameraPosition -> {
                         if (lastCameraPosition != intent.position) {
                             lastCameraPosition = intent.position
                             dispatch(Msg.CameraPositionChanged(intent.position))
                         }
+                    }
+
+                    is Intent.MarkerClicked -> {
+                        dispatch(Msg.MarkerSelected(intent.markerId))
+                        publish(Label.MarkerSelected(intent.markerId))
                     }
                 }
             }
@@ -224,12 +284,20 @@ class MapStoreFactory
 
                     is Action.TimeUpdateChanged ->
                         dispatch(Msg.TimeUpdateChanged(action.timeUpdate))
+
+                    is Action.MarkersUpdated -> {
+                        dispatch(Msg.MarkersLoaded(action.markers))
+                    }
+
+                    is Action.MarkerSelected -> {
+                        dispatch(Msg.MarkerSelected(action.markerId))
+                    }
                 }
             }
         }
 
-        private object ReducerImpl : Reducer<MapStore.State, Msg> {
-            override fun MapStore.State.reduce(msg: Msg): MapStore.State =
+        private object ReducerImpl : Reducer<State, Msg> {
+            override fun State.reduce(msg: Msg): State =
                 when (msg) {
                     is Msg.LocationStateChanged ->
                         copy(locationState = msg.state)
@@ -245,6 +313,14 @@ class MapStoreFactory
 
                     is Msg.TimeUpdateChanged -> {
                         copy(timeUpdate = msg.timeUpdate)
+                    }
+
+                    is Msg.MarkersLoaded -> {
+                        copy(markers = msg.markers)
+                    }
+
+                    is Msg.MarkerSelected -> {
+                        copy(selectedMarkerId = msg.markerId)
                     }
                 }
         }

@@ -1,6 +1,6 @@
 @file:OptIn(ExperimentalCoroutinesApi::class)
 
-package com.grebnev.feature.detailsmarker
+package com.grebnev.feature.detailsmarker.presentation
 
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.MutableValue
@@ -8,7 +8,6 @@ import com.arkivanov.decompose.value.Value
 import com.arkivanov.mvikotlin.core.instancekeeper.getStore
 import com.arkivanov.mvikotlin.extensions.coroutines.labels
 import com.arkivanov.mvikotlin.extensions.coroutines.stateFlow
-import com.grebnev.core.domain.entity.GeoMarker
 import com.grebnev.core.extensions.componentScope
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedFactory
@@ -20,23 +19,25 @@ class DefaultDetailsMarkerComponent
     @AssistedInject
     constructor(
         private val detailsStoreFactory: DetailsMarkerStoreFactory,
-        @Assisted private val marker: GeoMarker,
+        @Assisted private val markerId: Long,
         @Assisted private val onBackClicked: () -> Unit,
         @Assisted component: ComponentContext,
     ) : DetailsMarkerComponent,
         ComponentContext by component {
-        private val store = instanceKeeper.getStore { detailsStoreFactory.create(marker) }
+        private val store = instanceKeeper.getStore { detailsStoreFactory.create(markerId) }
 
         private val _model = MutableValue(store.state)
         override val model: Value<DetailsMarkerStore.State> = _model
 
+        private val scope = componentScope()
+
         init {
-            componentScope().launch {
+            scope.launch {
                 store.stateFlow.collect { newState ->
                     _model.value = newState
                 }
             }
-            componentScope().launch {
+            scope.launch {
                 store.labels.collect { label ->
                     when (label) {
                         DetailsMarkerStore.Label.BackClicked -> {
@@ -54,7 +55,7 @@ class DefaultDetailsMarkerComponent
         @AssistedFactory
         interface Factory {
             fun create(
-                @Assisted marker: GeoMarker,
+                @Assisted markerId: Long,
                 @Assisted onBackClicked: () -> Unit,
                 @Assisted component: ComponentContext,
             ): DefaultDetailsMarkerComponent

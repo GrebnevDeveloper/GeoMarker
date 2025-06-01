@@ -11,17 +11,15 @@ import com.grebnev.feature.geomarker.presentation.GeoMarkerStore.Intent
 import com.grebnev.feature.geomarker.presentation.GeoMarkerStore.Label
 import com.grebnev.feature.geomarker.presentation.GeoMarkerStore.State
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.emptyFlow
 import javax.inject.Inject
 
 interface GeoMarkerStore : Store<Intent, State, Label> {
     sealed interface Intent {
         data class SelectMarker(
-            val markerId: Long,
-        ) : Intent
-
-        data class DeselectMarker(
-            val markerId: Long,
+            val markerId: Long?,
         ) : Intent
 
         data object AddMarkerClicked : Intent
@@ -29,19 +27,11 @@ interface GeoMarkerStore : Store<Intent, State, Label> {
 
     data class State(
         val markersFlow: Flow<List<GeoMarker>> = emptyFlow(),
-        val selectedMarker: GeoMarker? = null,
+        val selectedMarkerId: StateFlow<Long?> = MutableStateFlow(null),
     )
 
     sealed interface Label {
         data object AddMarkerClicked : Label
-
-        data class MarkerSelected(
-            val markerId: Long,
-        ) : Label
-
-        data class MarkerDeselected(
-            val markerId: Long,
-        ) : Label
     }
 }
 
@@ -75,11 +65,7 @@ class GeoMarkersStoreFactory
             ) : Msg
 
             data class MarkerSelected(
-                val markerId: Long,
-            ) : Msg
-
-            data class MarkerDeselected(
-                val markerId: Long,
+                val markerId: Long?,
             ) : Msg
         }
 
@@ -95,12 +81,6 @@ class GeoMarkersStoreFactory
                 when (intent) {
                     is Intent.SelectMarker -> {
                         dispatch(Msg.MarkerSelected(intent.markerId))
-                        publish(Label.MarkerSelected(intent.markerId))
-                    }
-
-                    is Intent.DeselectMarker -> {
-                        dispatch(Msg.MarkerDeselected(intent.markerId))
-                        publish(Label.MarkerDeselected(intent.markerId))
                     }
 
                     is Intent.AddMarkerClicked -> {
@@ -126,15 +106,10 @@ class GeoMarkersStoreFactory
                             markersFlow = msg.markersFlow,
                         )
 
-                    is Msg.MarkerSelected ->
-                        copy(
-                            selectedMarker = null,
-                        )
-
-                    is Msg.MarkerDeselected ->
-                        copy(
-                            selectedMarker = null,
-                        )
+                    is Msg.MarkerSelected -> {
+                        (selectedMarkerId as MutableStateFlow).value = msg.markerId
+                        this
+                    }
                 }
         }
     }

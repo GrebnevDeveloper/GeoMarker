@@ -30,6 +30,7 @@ android {
 
 dependencies {
     implementation(project(":core-domain"))
+    implementation(project(":core-extensions"))
     implementation(project(":feature-listmarkers"))
     implementation(project(":feature-detailsmarker"))
 

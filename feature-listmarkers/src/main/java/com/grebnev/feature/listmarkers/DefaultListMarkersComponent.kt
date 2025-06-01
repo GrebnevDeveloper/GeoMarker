@@ -31,13 +31,15 @@ class DefaultListMarkersComponent
         private val _model = MutableValue(store.state)
         override val model: Value<ListMarkersStore.State> = _model
 
+        private val scope = componentScope()
+
         init {
-            componentScope().launch {
+            scope.launch {
                 store.stateFlow.collect { newState ->
                     _model.value = newState
                 }
             }
-            componentScope().launch {
+            scope.launch {
                 store.labels.collect { label ->
                     when (label) {
                         is ListMarkersStore.Label.MarkerClicked -> onMarkerSelected(label.marker)
