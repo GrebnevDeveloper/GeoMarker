@@ -34,13 +34,15 @@ class DefaultGeoMarkerComponent
         private val _model = MutableValue(store.stateFlow.value)
         override val model: Value<GeoMarkerStore.State> = _model
 
+        private val scope = componentScope()
+
         init {
-            componentScope().launch {
+            scope.launch {
                 store.stateFlow.collect { newState ->
                     _model.value = newState
                 }
             }
-            componentScope().launch {
+            scope.launch {
                 store.labels.collect { label ->
                     when (label) {
                         GeoMarkerStore.Label.AddMarkerClicked -> onAddMarkerClicked()

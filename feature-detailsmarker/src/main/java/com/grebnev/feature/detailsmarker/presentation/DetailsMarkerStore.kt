@@ -36,11 +36,10 @@ class DetailsMarkerStoreFactory
         fun create(markerId: Long): DetailsMarkerStore =
             object :
                 DetailsMarkerStore,
-                Store<DetailsMarkerStore.Intent, DetailsMarkerStore.State, DetailsMarkerStore.Label> by storeFactory
+                Store<Intent, State, Label> by storeFactory
                     .create(
                         name = "DetailsMarkerStore",
-                        initialState =
-                            DetailsMarkerStore.State(),
+                        initialState = State(),
                         bootstrapper = BootstrapperImpl(markerId),
                         executorFactory = ::ExecutorImpl,
                         reducer = ReducerImpl,
@@ -70,12 +69,11 @@ class DetailsMarkerStoreFactory
             }
         }
 
-        private inner class ExecutorImpl :
-            CoroutineExecutor<DetailsMarkerStore.Intent, Action, DetailsMarkerStore.State, Msg, DetailsMarkerStore.Label>() {
-            override fun executeIntent(intent: DetailsMarkerStore.Intent) {
+        private inner class ExecutorImpl : CoroutineExecutor<Intent, Action, State, Msg, Label>() {
+            override fun executeIntent(intent: Intent) {
                 when (intent) {
-                    DetailsMarkerStore.Intent.BackClicked -> {
-                        publish(DetailsMarkerStore.Label.BackClicked)
+                    Intent.BackClicked -> {
+                        publish(Label.BackClicked)
                     }
                 }
             }
@@ -88,8 +86,8 @@ class DetailsMarkerStoreFactory
             }
         }
 
-        private object ReducerImpl : Reducer<DetailsMarkerStore.State, Msg> {
-            override fun DetailsMarkerStore.State.reduce(msg: Msg): DetailsMarkerStore.State =
+        private object ReducerImpl : Reducer<State, Msg> {
+            override fun State.reduce(msg: Msg): State =
                 when (msg) {
                     is Msg.MarkerLoaded -> {
                         copy(marker = msg.marker)
