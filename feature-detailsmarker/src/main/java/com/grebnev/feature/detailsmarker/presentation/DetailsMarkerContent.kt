@@ -31,7 +31,7 @@ fun DetailsMarkerContent(
         modifier =
             modifier
                 .fillMaxSize()
-                .padding(16.dp),
+                .padding(start = 16.dp, end = 16.dp, bottom = 16.dp),
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -49,7 +49,7 @@ fun DetailsMarkerContent(
             }
             Text(
                 text = state.marker?.title ?: "",
-                style = MaterialTheme.typography.headlineMedium,
+                style = MaterialTheme.typography.headlineSmall,
                 modifier = Modifier.padding(start = 16.dp),
             )
         }
