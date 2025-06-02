@@ -43,11 +43,11 @@ fun ListMarkersContent(
         modifier =
             modifier
                 .fillMaxSize()
-                .padding(16.dp),
+                .padding(start = 16.dp, end = 16.dp, bottom = 16.dp),
     ) {
         Text(
             text = stringResource(R.string.places_nearby),
-            style = MaterialTheme.typography.headlineMedium,
+            style = MaterialTheme.typography.headlineSmall,
             modifier = Modifier.padding(start = 16.dp),
         )
         Box(

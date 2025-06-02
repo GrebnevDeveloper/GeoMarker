@@ -92,7 +92,7 @@ fun MapContent(
                 modifier =
                     Modifier
                         .align(Alignment.CenterEnd)
-                        .padding(16.dp),
+                        .padding(end = 16.dp, bottom = 20.dp),
                 locationState = state.locationState,
                 hasPermission = permissionState.status.isGranted,
                 onRequestPermission = { permissionState.launchPermissionRequest() },
