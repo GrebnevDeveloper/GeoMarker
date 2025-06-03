@@ -2,9 +2,16 @@ package com.grebnev.core.map.presentation
 
 import android.Manifest
 import android.content.Context
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -12,7 +19,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -41,6 +50,9 @@ import com.yandex.runtime.image.ImageProvider
 fun MapContent(
     component: MapComponent,
     modifier: Modifier = Modifier,
+    showCurrentLocation: Boolean = false,
+    showMarkers: Boolean = false,
+    showPositionMarker: Boolean = false,
 ) {
     val state by component.model.subscribeAsState()
     val context = LocalContext.current
@@ -81,11 +93,13 @@ fun MapContent(
                 factory = { mapView },
             )
             if (permissionState.status.isGranted) {
-                CurrentLocationMarker(
-                    context = context,
-                    mapView = mapView,
-                    locationState = state.locationState,
-                )
+                if (showCurrentLocation) {
+                    CurrentLocationMarker(
+                        context = context,
+                        mapView = mapView,
+                        locationState = state.locationState,
+                    )
+                }
             }
 
             MapControls(
@@ -100,18 +114,23 @@ fun MapContent(
                 onChangeZoom = { delta -> component.onIntent(MapStore.Intent.ChangeZoom(delta)) },
             )
 
-            GeoMarkers(
-                context = context,
-                mapView = mapView,
-                markers = state.markers,
-                selectedMarkerId = state.selectedMarkerId,
-                onMarkerClick = { marker ->
-                    component.onIntent(MapStore.Intent.MarkerClicked(marker.id))
-                },
-                updateCameraPosition = { position ->
-                    component.onIntent(MapStore.Intent.UpdateCameraPosition(position))
-                },
-            )
+            if (showMarkers) {
+                GeoMarkers(
+                    context = context,
+                    mapView = mapView,
+                    markers = state.markers,
+                    selectedMarkerId = state.selectedMarkerId,
+                    onMarkerClick = { marker ->
+                        component.onIntent(MapStore.Intent.MarkerClicked(marker.id))
+                    },
+                    updateCameraPosition = { position ->
+                        component.onIntent(MapStore.Intent.UpdateCameraPosition(position))
+                    },
+                )
+            }
+            if (showPositionMarker) {
+                PositionMarker(modifier = Modifier.align(Alignment.Center))
+            }
         }
     }
 
@@ -189,6 +208,29 @@ private fun CurrentLocationMarker(
             }
         }
     }
+}
+
+@Composable
+private fun PositionMarker(modifier: Modifier = Modifier) {
+    val infiniteTransition = rememberInfiniteTransition()
+    val scale by infiniteTransition.animateFloat(
+        initialValue = 1f,
+        targetValue = 1.2f,
+        animationSpec =
+            infiniteRepeatable(
+                animation = tween(1000),
+                repeatMode = RepeatMode.Reverse,
+            ),
+    )
+
+    Image(
+        painter = painterResource(R.drawable.ic_marker),
+        contentDescription = null,
+        modifier =
+            modifier
+                .size(48.dp)
+                .scale(scale),
+    )
 }
 
 @Composable

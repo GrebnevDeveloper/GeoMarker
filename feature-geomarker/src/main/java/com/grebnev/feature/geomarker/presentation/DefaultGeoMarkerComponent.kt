@@ -23,7 +23,7 @@ class DefaultGeoMarkerComponent
     @AssistedInject
     constructor(
         private val geoMarkersStoreFactory: GeoMarkersStoreFactory,
-        private val mapComponentFactory: DefaultMapComponent.Factory,
+        private val mapComponentFactory: DefaultMapComponent.MapMarkersFactory,
         private val bottomSheetComponentFactory: DefaultBottomSheetComponent.Factory,
         @Assisted private val onAddMarkerClicked: () -> Unit,
         @Assisted componentContext: ComponentContext,

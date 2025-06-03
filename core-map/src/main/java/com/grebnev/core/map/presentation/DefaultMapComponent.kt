@@ -8,12 +8,15 @@ import com.arkivanov.mvikotlin.extensions.coroutines.labels
 import com.arkivanov.mvikotlin.extensions.coroutines.stateFlow
 import com.grebnev.core.domain.entity.GeoMarker
 import com.grebnev.core.extensions.componentScope
+import com.yandex.mapkit.map.CameraPosition
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -24,6 +27,7 @@ class DefaultMapComponent
         @Assisted markersFlow: Flow<List<GeoMarker>>,
         @Assisted selectedMarkerIdFlow: StateFlow<Long?>,
         @Assisted private val onMarkerSelected: (Long?) -> Unit,
+        @Assisted private val cameraPositionChanged: (CameraPosition) -> Unit,
         @Assisted componentContext: ComponentContext,
     ) : MapComponent,
         ComponentContext by componentContext {
@@ -51,6 +55,9 @@ class DefaultMapComponent
                     when (label) {
                         is MapStore.Label.MarkerSelected ->
                             onMarkerSelected(label.markerId)
+
+                        is MapStore.Label.CameraPositionChanged ->
+                            cameraPositionChanged(label.position)
                     }
                 }
             }
@@ -61,11 +68,23 @@ class DefaultMapComponent
         }
 
         @AssistedFactory
-        interface Factory {
+        interface MapMarkersFactory {
             fun create(
                 @Assisted markersFlow: Flow<List<GeoMarker>>,
                 @Assisted selectedMarkerIdFlow: StateFlow<Long?>,
                 @Assisted onMarkerSelected: (Long?) -> Unit,
+                @Assisted cameraPositionChanged: (CameraPosition) -> Unit = { _ -> },
+                @Assisted componentContext: ComponentContext,
+            ): DefaultMapComponent
+        }
+
+        @AssistedFactory
+        interface LocationPickerFactory {
+            fun create(
+                @Assisted markersFlow: Flow<List<GeoMarker>> = emptyFlow(),
+                @Assisted selectedMarkerIdFlow: StateFlow<Long?> = MutableStateFlow(null),
+                @Assisted onMarkerSelected: (Long?) -> Unit = {},
+                @Assisted cameraPositionChanged: (CameraPosition) -> Unit,
                 @Assisted componentContext: ComponentContext,
             ): DefaultMapComponent
         }

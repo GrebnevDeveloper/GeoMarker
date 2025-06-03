@@ -10,6 +10,7 @@ import com.grebnev.feature.addmarker.presentation.AddMarkerStore.Intent
 import com.grebnev.feature.addmarker.presentation.AddMarkerStore.Label
 import com.grebnev.feature.addmarker.presentation.AddMarkerStore.State
 import com.yandex.mapkit.geometry.Point
+import com.yandex.mapkit.map.CameraPosition
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import kotlin.random.Random
@@ -24,6 +25,10 @@ interface AddMarkerStore : Store<Intent, State, Label> {
             val description: String,
         ) : Intent
 
+        data class CameraPositionChanged(
+            val position: CameraPosition,
+        ) : Intent
+
         data object SubmitClicked : Intent
 
         data object BackClicked : Intent
@@ -32,7 +37,7 @@ interface AddMarkerStore : Store<Intent, State, Label> {
     data class State(
         val title: String,
         val description: String,
-        val location: Point,
+        val position: Point,
         val validationErrors: List<ValidationError>,
     ) {
         enum class ValidationError {
@@ -59,14 +64,14 @@ class AddMarkerStoreFactory
         fun create(): AddMarkerStore =
             object :
                 AddMarkerStore,
-                Store<AddMarkerStore.Intent, AddMarkerStore.State, AddMarkerStore.Label> by storeFactory
+                Store<Intent, State, Label> by storeFactory
                     .create(
                         name = "AddMarkerStore",
                         initialState =
-                            AddMarkerStore.State(
+                            State(
                                 title = "",
                                 description = "",
-                                location =
+                                position =
                                     Point(
                                         Random.nextDouble(56.7, 56.9),
                                         Random.nextDouble(53.1, 53.2),
@@ -88,6 +93,10 @@ class AddMarkerStoreFactory
                 val description: String,
             ) : Msg
 
+            data class CameraPositionChanged(
+                val position: CameraPosition,
+            ) : Msg
+
             data class ValidationFailed(
                 val errors: List<State.ValidationError>,
             ) : Msg
@@ -95,20 +104,23 @@ class AddMarkerStoreFactory
 
         private inner class ExecutorImpl :
             CoroutineExecutor<Intent, Action, State, Msg, Label>() {
-            override fun executeIntent(intent: AddMarkerStore.Intent) {
+            override fun executeIntent(intent: Intent) {
                 when (intent) {
-                    is AddMarkerStore.Intent.TitleChanged ->
+                    is Intent.TitleChanged ->
                         dispatch(Msg.TitleUpdated(intent.title))
 
-                    is AddMarkerStore.Intent.DescriptionChanged ->
+                    is Intent.DescriptionChanged ->
                         dispatch(Msg.DescriptionUpdated(intent.description))
 
-                    AddMarkerStore.Intent.SubmitClicked -> {
+                    Intent.SubmitClicked -> {
                         submitMarker()
                     }
 
-                    AddMarkerStore.Intent.BackClicked ->
-                        publish(AddMarkerStore.Label.BackClicked)
+                    Intent.BackClicked ->
+                        publish(Label.BackClicked)
+
+                    is Intent.CameraPositionChanged ->
+                        dispatch(Msg.CameraPositionChanged(intent.position))
                 }
             }
 
@@ -126,28 +138,29 @@ class AddMarkerStoreFactory
                         GeoMarker(
                             title = state.title,
                             description = state.description,
-                            latitude = state.location.latitude,
-                            longitude = state.location.longitude,
+                            latitude = state.position.latitude,
+                            longitude = state.position.longitude,
                         ),
                     )
-                    publish(AddMarkerStore.Label.MarkerAdded)
+                    publish(Label.MarkerAdded)
                 }
             }
         }
 
-        private fun validate(state: AddMarkerStore.State): List<State.ValidationError> {
+        private fun validate(state: State): List<State.ValidationError> {
             val errors = mutableListOf<State.ValidationError>()
             if (state.title.isBlank()) errors.add(State.ValidationError.TITLE_EMPTY)
             if (state.description.length > 200) errors.add(State.ValidationError.DESCRIPTION_TOO_LONG)
             return errors
         }
 
-        private object ReducerImpl : Reducer<AddMarkerStore.State, Msg> {
-            override fun AddMarkerStore.State.reduce(msg: Msg): AddMarkerStore.State =
+        private object ReducerImpl : Reducer<State, Msg> {
+            override fun State.reduce(msg: Msg): State =
                 when (msg) {
                     is Msg.TitleUpdated -> copy(title = msg.title)
                     is Msg.DescriptionUpdated -> copy(description = msg.description)
                     is Msg.ValidationFailed -> copy(validationErrors = msg.errors)
+                    is Msg.CameraPositionChanged -> copy(position = msg.position.target)
                 }
         }
     }

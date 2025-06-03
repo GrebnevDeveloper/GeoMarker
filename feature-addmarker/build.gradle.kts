@@ -30,6 +30,7 @@ dependencies {
     implementation(project(":core-extensions"))
     implementation(project(":core-database"))
     implementation(project(":core-domain"))
+    implementation(project(":core-map"))
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity.compose)

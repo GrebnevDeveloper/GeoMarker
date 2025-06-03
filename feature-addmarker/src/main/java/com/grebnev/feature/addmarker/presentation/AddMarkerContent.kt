@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
@@ -27,6 +28,7 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
+import com.grebnev.core.map.presentation.MapContent
 import com.grebnev.feature.addmarker.R
 
 @Composable
@@ -95,6 +97,12 @@ fun AddMarkerContent(
                     style = MaterialTheme.typography.labelSmall,
                 )
             }
+
+            MapContent(
+                component = component.mapComponent,
+                modifier = Modifier.height(300.dp),
+                showPositionMarker = true,
+            )
 
             Spacer(modifier = Modifier.weight(1f))
 
