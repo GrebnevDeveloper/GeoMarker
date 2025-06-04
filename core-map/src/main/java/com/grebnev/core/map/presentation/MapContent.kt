@@ -50,13 +50,10 @@ fun MapContent(
     val context = LocalContext.current
     val mapView = rememberMapViewWithLifecycle(context)
 
-    LaunchedEffect(state.isFirstLocation) {
-        if (!state.isFirstLocation && state.cameraPosition != null) {
-            state.cameraPosition?.let { position ->
-                mapView.mapWindow.map.move(position)
-            }
-        }
-    }
+    HandleFirstLocation(
+        state = state,
+        mapView = mapView,
+    )
 
     SynchronizationPositionWithStore(
         mapView = mapView,
@@ -129,6 +126,20 @@ fun MapContent(
     DisposableEffect(Unit) {
         onDispose {
             component.onIntent(MapStore.Intent.StopLocationUpdates)
+        }
+    }
+}
+
+@Composable
+private fun HandleFirstLocation(
+    state: MapStore.State,
+    mapView: MapView,
+) {
+    LaunchedEffect(state.isFirstLocation) {
+        if (!state.isFirstLocation && state.cameraPosition != null) {
+            state.cameraPosition.let { position ->
+                mapView.mapWindow.map.move(position)
+            }
         }
     }
 }
