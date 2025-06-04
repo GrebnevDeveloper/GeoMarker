@@ -8,7 +8,7 @@ import com.arkivanov.mvikotlin.core.instancekeeper.getStore
 import com.arkivanov.mvikotlin.extensions.coroutines.labels
 import com.arkivanov.mvikotlin.extensions.coroutines.stateFlow
 import com.grebnev.core.extensions.componentScope
-import com.grebnev.core.map.presentation.DefaultMapComponent
+import com.grebnev.core.map.presentation.DefaultMapComponentProvider
 import com.grebnev.core.map.presentation.MapComponent
 import com.grebnev.feature.bottomsheet.navigation.BottomSheetComponent
 import com.grebnev.feature.bottomsheet.navigation.DefaultBottomSheetComponent
@@ -23,7 +23,7 @@ class DefaultGeoMarkerComponent
     @AssistedInject
     constructor(
         private val geoMarkersStoreFactory: GeoMarkersStoreFactory,
-        private val mapComponentFactory: DefaultMapComponent.Factory,
+        private val mapComponentProvider: DefaultMapComponentProvider,
         private val bottomSheetComponentFactory: DefaultBottomSheetComponent.Factory,
         @Assisted private val onAddMarkerClicked: () -> Unit,
         @Assisted componentContext: ComponentContext,
@@ -52,7 +52,7 @@ class DefaultGeoMarkerComponent
         }
 
         override val mapComponent: MapComponent =
-            mapComponentFactory.create(
+            mapComponentProvider.createMapMarkers(
                 markersFlow = model.value.markersFlow,
                 selectedMarkerIdFlow = model.value.selectedMarkerId,
                 onMarkerSelected = { markerId -> store.accept(GeoMarkerStore.Intent.SelectMarker(markerId)) },

@@ -1,5 +1,6 @@
 package com.grebnev.core.map.presentation
 
+import androidx.compose.material3.Label
 import com.arkivanov.mvikotlin.core.store.Reducer
 import com.arkivanov.mvikotlin.core.store.Store
 import com.arkivanov.mvikotlin.core.store.StoreFactory
@@ -64,6 +65,10 @@ interface MapStore : Store<Intent, State, Label> {
     sealed interface Label {
         data class MarkerSelected(
             val markerId: Long?,
+        ) : Label
+
+        data class CameraPositionChanged(
+            val position: CameraPosition,
         ) : Label
     }
 }
@@ -251,6 +256,7 @@ class MapStoreFactory
                         if (lastCameraPosition != intent.position) {
                             lastCameraPosition = intent.position
                             dispatch(Msg.CameraPositionChanged(intent.position))
+                            publish(Label.CameraPositionChanged(intent.position))
                         }
                     }
 
@@ -264,6 +270,7 @@ class MapStoreFactory
             override fun executeAction(action: Action) {
                 when (action) {
                     is Action.CameraPositionChanged -> {
+                        publish(Label.CameraPositionChanged(action.position))
                     }
 
                     is Action.LocationStateChanged -> {
@@ -327,8 +334,8 @@ class MapStoreFactory
 
         companion object {
             private const val DEFAULT_ZOOM_LEVEL = 15f
-            private const val MIN_ZOOM = 1f
-            private const val MAX_ZOOM = 20f
             private const val DELTA_CURRENT_AND_LAST_UPDATE_IN_MILLIS = 30_000L
+            const val MIN_ZOOM = 1f
+            const val MAX_ZOOM = 20f
         }
     }

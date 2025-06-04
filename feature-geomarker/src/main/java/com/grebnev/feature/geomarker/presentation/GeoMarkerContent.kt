@@ -57,7 +57,11 @@ fun GeoMarkerContent(component: GeoMarkerComponent) {
         sheetPeekHeight = screenHeight / 4,
         content = { paddingValues ->
             Box {
-                MapContent(component.mapComponent)
+                MapContent(
+                    component = component.mapComponent,
+                    showCurrentLocation = true,
+                    showMarkers = true,
+                )
                 FloatingActionButton(
                     modifier =
                         Modifier

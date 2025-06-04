@@ -5,5 +5,6 @@
     <string name="marker_description">Marker description</string>
     <string name="description_too_long">The description is too long (max. 200 characters)</string>
     <string name="name_required">The name is required</string>
+    <string name="location">Location</string>
     <string name="save">Save</string>
 </resources>

@@ -24,8 +24,10 @@ import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.grebnev.core.map.R
 import com.grebnev.core.map.extensions.hasSignificantDifferenceFrom
+import com.grebnev.core.map.ui.CurrentLocationMarker
 import com.grebnev.core.map.ui.GeoMarkers
 import com.grebnev.core.map.ui.MapControls
+import com.grebnev.core.map.ui.PositionMarker
 import com.grebnev.core.permissions.PermissionRequired
 import com.yandex.mapkit.Animation
 import com.yandex.mapkit.MapKitFactory
@@ -34,25 +36,24 @@ import com.yandex.mapkit.map.CameraPosition
 import com.yandex.mapkit.map.CameraUpdateReason
 import com.yandex.mapkit.map.Map
 import com.yandex.mapkit.mapview.MapView
-import com.yandex.runtime.image.ImageProvider
 
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
 fun MapContent(
     component: MapComponent,
     modifier: Modifier = Modifier,
+    showCurrentLocation: Boolean = false,
+    showMarkers: Boolean = false,
+    showPositionMarker: Boolean = false,
 ) {
     val state by component.model.subscribeAsState()
     val context = LocalContext.current
     val mapView = rememberMapViewWithLifecycle(context)
 
-    LaunchedEffect(state.isFirstLocation) {
-        if (!state.isFirstLocation && state.cameraPosition != null) {
-            state.cameraPosition?.let { position ->
-                mapView.mapWindow.map.move(position)
-            }
-        }
-    }
+    HandleFirstLocation(
+        state = state,
+        mapView = mapView,
+    )
 
     SynchronizationPositionWithStore(
         mapView = mapView,
@@ -81,11 +82,13 @@ fun MapContent(
                 factory = { mapView },
             )
             if (permissionState.status.isGranted) {
-                CurrentLocationMarker(
-                    context = context,
-                    mapView = mapView,
-                    locationState = state.locationState,
-                )
+                if (showCurrentLocation) {
+                    CurrentLocationMarker(
+                        context = context,
+                        mapView = mapView,
+                        locationState = state.locationState,
+                    )
+                }
             }
 
             MapControls(
@@ -100,24 +103,43 @@ fun MapContent(
                 onChangeZoom = { delta -> component.onIntent(MapStore.Intent.ChangeZoom(delta)) },
             )
 
-            GeoMarkers(
-                context = context,
-                mapView = mapView,
-                markers = state.markers,
-                selectedMarkerId = state.selectedMarkerId,
-                onMarkerClick = { marker ->
-                    component.onIntent(MapStore.Intent.MarkerClicked(marker.id))
-                },
-                updateCameraPosition = { position ->
-                    component.onIntent(MapStore.Intent.UpdateCameraPosition(position))
-                },
-            )
+            if (showMarkers) {
+                GeoMarkers(
+                    context = context,
+                    mapView = mapView,
+                    markers = state.markers,
+                    selectedMarkerId = state.selectedMarkerId,
+                    onMarkerClick = { marker ->
+                        component.onIntent(MapStore.Intent.MarkerClicked(marker.id))
+                    },
+                    updateCameraPosition = { position ->
+                        component.onIntent(MapStore.Intent.UpdateCameraPosition(position))
+                    },
+                )
+            }
+            if (showPositionMarker) {
+                PositionMarker(modifier = Modifier.align(Alignment.Center))
+            }
         }
     }
 
     DisposableEffect(Unit) {
         onDispose {
             component.onIntent(MapStore.Intent.StopLocationUpdates)
+        }
+    }
+}
+
+@Composable
+private fun HandleFirstLocation(
+    state: MapStore.State,
+    mapView: MapView,
+) {
+    LaunchedEffect(state.isFirstLocation) {
+        if (!state.isFirstLocation && state.cameraPosition != null) {
+            state.cameraPosition.let { position ->
+                mapView.mapWindow.map.move(position)
+            }
         }
     }
 }
@@ -162,31 +184,6 @@ private fun SynchronizationPositionWithStore(
 
         onDispose {
             map.removeCameraListener(listener)
-        }
-    }
-}
-
-@Composable
-private fun CurrentLocationMarker(
-    context: Context,
-    mapView: MapView,
-    locationState: MapStore.State.LocationState,
-) {
-    val map = mapView.mapWindow.map
-    val locationCollection = remember { map.mapObjects.addCollection() }
-
-    LaunchedEffect(locationState) {
-        when (locationState) {
-            is MapStore.State.LocationState.Available -> {
-                locationCollection.clear()
-                locationCollection.addPlacemark().apply {
-                    geometry = locationState.point
-                    setIcon(ImageProvider.fromResource(context, R.drawable.ic_my_location))
-                }
-            }
-
-            else -> {
-            }
         }
     }
 }
