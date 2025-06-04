@@ -4,7 +4,7 @@ plugins {
 }
 
 android {
-    namespace = "com.grebnev.core.extensions"
+    namespace = "com.grebnev.feature.imagepicker"
     compileSdk =
         libs.versions.androidCompileSdk
             .get()
@@ -28,6 +28,9 @@ android {
 dependencies {
 
     implementation(libs.androidx.core.ktx)
-    implementation(libs.bundles.decompose)
+    implementation(libs.androidx.appcompat)
+    implementation(libs.material)
     testImplementation(libs.junit)
+    androidTestImplementation(libs.androidx.junit)
+    androidTestImplementation(libs.androidx.espresso.core)
 }

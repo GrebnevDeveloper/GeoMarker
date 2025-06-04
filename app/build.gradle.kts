@@ -13,14 +13,26 @@ plugins {
 
 android {
     namespace = "com.grebnev.geomarker"
-    compileSdk = 35
+    compileSdk =
+        libs.versions.androidCompileSdk
+            .get()
+            .toInt()
 
     defaultConfig {
         applicationId = "com.grebnev.geomarker"
-        minSdk = 26
-        targetSdk = 35
-        versionCode = 1
-        versionName = "1.0"
+        minSdk =
+            libs.versions.androidMinSdk
+                .get()
+                .toInt()
+        targetSdk =
+            libs.versions.androidTargetSdk
+                .get()
+                .toInt()
+        versionCode =
+            libs.versions.versionCode
+                .get()
+                .toInt()
+        versionName = libs.versions.versionName.get()
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -68,11 +80,11 @@ android {
         }
     }
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
+        sourceCompatibility = JavaVersion.toVersion(libs.versions.jvmTarget.get())
+        targetCompatibility = JavaVersion.toVersion(libs.versions.jvmTarget.get())
     }
     kotlinOptions {
-        jvmTarget = "17"
+        jvmTarget = libs.versions.jvmTarget.get()
     }
     buildFeatures {
         compose = true
