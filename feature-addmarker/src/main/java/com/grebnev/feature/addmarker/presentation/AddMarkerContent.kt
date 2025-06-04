@@ -1,5 +1,6 @@
 package com.grebnev.feature.addmarker.presentation
 
+import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -8,6 +9,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Button
@@ -24,11 +27,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
+import com.grebnev.core.map.extensions.calculateNewPosition
 import com.grebnev.core.map.presentation.MapContent
+import com.grebnev.core.map.presentation.MapStore
 import com.grebnev.feature.addmarker.R
 
 @Composable
@@ -37,6 +43,7 @@ fun AddMarkerContent(
     modifier: Modifier = Modifier,
 ) {
     val state by component.model.subscribeAsState()
+    val scrollState = rememberScrollState()
     val focusManager = LocalFocusManager.current
 
     Scaffold(
@@ -51,8 +58,13 @@ fun AddMarkerContent(
         Column(
             modifier =
                 modifier
-                    .fillMaxSize()
-                    .padding(padding),
+                    .padding(
+                        top = padding.calculateTopPadding(),
+                        bottom = 10.dp,
+                        start = 5.dp,
+                        end = 5.dp,
+                    ).fillMaxSize()
+                    .verticalScroll(scrollState),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             OutlinedTextField(
@@ -98,9 +110,30 @@ fun AddMarkerContent(
                 )
             }
 
+            Text(
+                text = stringResource(R.string.location),
+                style = MaterialTheme.typography.titleLarge,
+            )
+
             MapContent(
                 component = component.mapComponent,
-                modifier = Modifier.height(300.dp),
+                modifier =
+                    Modifier
+                        .height(300.dp)
+                        .pointerInput(Unit) {
+                            detectTransformGestures(
+                                onGesture = { centroid, pan, zoom, rotation ->
+                                    component.mapComponent.onIntent(
+                                        MapStore.Intent.UpdateCameraPosition(
+                                            state.position.calculateNewPosition(
+                                                panOffset = pan,
+                                                zoomChange = zoom - 1f,
+                                            ),
+                                        ),
+                                    )
+                                },
+                            )
+                        },
                 showPositionMarker = true,
             )
 

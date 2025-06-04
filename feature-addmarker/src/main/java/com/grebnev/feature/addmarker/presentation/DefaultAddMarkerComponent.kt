@@ -8,7 +8,7 @@ import com.arkivanov.mvikotlin.core.instancekeeper.getStore
 import com.arkivanov.mvikotlin.extensions.coroutines.labels
 import com.arkivanov.mvikotlin.extensions.coroutines.stateFlow
 import com.grebnev.core.extensions.componentScope
-import com.grebnev.core.map.presentation.DefaultMapComponent
+import com.grebnev.core.map.presentation.DefaultMapComponentProvider
 import com.grebnev.core.map.presentation.MapComponent
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedFactory
@@ -21,7 +21,7 @@ class DefaultAddMarkerComponent
     @AssistedInject
     constructor(
         private val addMarkerStoreFactory: AddMarkerStoreFactory,
-        private val mapComponentFactory: DefaultMapComponent.LocationPickerFactory,
+        private val mapComponentProvider: DefaultMapComponentProvider,
         @Assisted private val onBackClicked: () -> Unit,
         @Assisted componentContext: ComponentContext,
     ) : AddMarkerComponent,
@@ -48,7 +48,7 @@ class DefaultAddMarkerComponent
         }
 
         override val mapComponent: MapComponent =
-            mapComponentFactory.create(
+            mapComponentProvider.createLocationPicker(
                 cameraPositionChanged = { position ->
                     store.accept(AddMarkerStore.Intent.CameraPositionChanged(position))
                 },

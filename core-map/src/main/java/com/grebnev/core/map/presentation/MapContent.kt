@@ -2,16 +2,9 @@ package com.grebnev.core.map.presentation
 
 import android.Manifest
 import android.content.Context
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -19,9 +12,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -33,8 +24,10 @@ import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.grebnev.core.map.R
 import com.grebnev.core.map.extensions.hasSignificantDifferenceFrom
+import com.grebnev.core.map.ui.CurrentLocationMarker
 import com.grebnev.core.map.ui.GeoMarkers
 import com.grebnev.core.map.ui.MapControls
+import com.grebnev.core.map.ui.PositionMarker
 import com.grebnev.core.permissions.PermissionRequired
 import com.yandex.mapkit.Animation
 import com.yandex.mapkit.MapKitFactory
@@ -43,7 +36,6 @@ import com.yandex.mapkit.map.CameraPosition
 import com.yandex.mapkit.map.CameraUpdateReason
 import com.yandex.mapkit.map.Map
 import com.yandex.mapkit.mapview.MapView
-import com.yandex.runtime.image.ImageProvider
 
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
@@ -183,54 +175,6 @@ private fun SynchronizationPositionWithStore(
             map.removeCameraListener(listener)
         }
     }
-}
-
-@Composable
-private fun CurrentLocationMarker(
-    context: Context,
-    mapView: MapView,
-    locationState: MapStore.State.LocationState,
-) {
-    val map = mapView.mapWindow.map
-    val locationCollection = remember { map.mapObjects.addCollection() }
-
-    LaunchedEffect(locationState) {
-        when (locationState) {
-            is MapStore.State.LocationState.Available -> {
-                locationCollection.clear()
-                locationCollection.addPlacemark().apply {
-                    geometry = locationState.point
-                    setIcon(ImageProvider.fromResource(context, R.drawable.ic_my_location))
-                }
-            }
-
-            else -> {
-            }
-        }
-    }
-}
-
-@Composable
-private fun PositionMarker(modifier: Modifier = Modifier) {
-    val infiniteTransition = rememberInfiniteTransition()
-    val scale by infiniteTransition.animateFloat(
-        initialValue = 1f,
-        targetValue = 1.2f,
-        animationSpec =
-            infiniteRepeatable(
-                animation = tween(1000),
-                repeatMode = RepeatMode.Reverse,
-            ),
-    )
-
-    Image(
-        painter = painterResource(R.drawable.ic_marker),
-        contentDescription = null,
-        modifier =
-            modifier
-                .size(48.dp)
-                .scale(scale),
-    )
 }
 
 @Composable

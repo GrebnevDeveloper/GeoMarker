@@ -37,7 +37,7 @@ interface AddMarkerStore : Store<Intent, State, Label> {
     data class State(
         val title: String,
         val description: String,
-        val position: Point,
+        val position: CameraPosition,
         val validationErrors: List<ValidationError>,
     ) {
         enum class ValidationError {
@@ -72,9 +72,14 @@ class AddMarkerStoreFactory
                                 title = "",
                                 description = "",
                                 position =
-                                    Point(
-                                        Random.nextDouble(56.7, 56.9),
-                                        Random.nextDouble(53.1, 53.2),
+                                    CameraPosition(
+                                        Point(
+                                            Random.nextDouble(56.7, 56.9),
+                                            Random.nextDouble(53.1, 53.2),
+                                        ),
+                                        15f,
+                                        0f,
+                                        0f,
                                     ),
                                 validationErrors = emptyList(),
                             ),
@@ -138,8 +143,8 @@ class AddMarkerStoreFactory
                         GeoMarker(
                             title = state.title,
                             description = state.description,
-                            latitude = state.position.latitude,
-                            longitude = state.position.longitude,
+                            latitude = state.position.target.latitude,
+                            longitude = state.position.target.longitude,
                         ),
                     )
                     publish(Label.MarkerAdded)
@@ -160,7 +165,7 @@ class AddMarkerStoreFactory
                     is Msg.TitleUpdated -> copy(title = msg.title)
                     is Msg.DescriptionUpdated -> copy(description = msg.description)
                     is Msg.ValidationFailed -> copy(validationErrors = msg.errors)
-                    is Msg.CameraPositionChanged -> copy(position = msg.position.target)
+                    is Msg.CameraPositionChanged -> copy(position = msg.position)
                 }
         }
     }

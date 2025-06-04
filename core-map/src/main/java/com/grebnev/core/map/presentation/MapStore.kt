@@ -334,8 +334,8 @@ class MapStoreFactory
 
         companion object {
             private const val DEFAULT_ZOOM_LEVEL = 15f
-            private const val MIN_ZOOM = 1f
-            private const val MAX_ZOOM = 20f
             private const val DELTA_CURRENT_AND_LAST_UPDATE_IN_MILLIS = 30_000L
+            const val MIN_ZOOM = 1f
+            const val MAX_ZOOM = 20f
         }
     }

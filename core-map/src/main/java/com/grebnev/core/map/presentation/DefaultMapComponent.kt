@@ -18,6 +18,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class DefaultMapComponent
@@ -68,24 +69,45 @@ class DefaultMapComponent
         }
 
         @AssistedFactory
-        interface MapMarkersFactory {
+        interface InternalFactory {
             fun create(
                 @Assisted markersFlow: Flow<List<GeoMarker>>,
                 @Assisted selectedMarkerIdFlow: StateFlow<Long?>,
                 @Assisted onMarkerSelected: (Long?) -> Unit,
-                @Assisted cameraPositionChanged: (CameraPosition) -> Unit = { _ -> },
-                @Assisted componentContext: ComponentContext,
-            ): DefaultMapComponent
-        }
-
-        @AssistedFactory
-        interface LocationPickerFactory {
-            fun create(
-                @Assisted markersFlow: Flow<List<GeoMarker>> = emptyFlow(),
-                @Assisted selectedMarkerIdFlow: StateFlow<Long?> = MutableStateFlow(null),
-                @Assisted onMarkerSelected: (Long?) -> Unit = {},
                 @Assisted cameraPositionChanged: (CameraPosition) -> Unit,
                 @Assisted componentContext: ComponentContext,
             ): DefaultMapComponent
         }
+    }
+
+class DefaultMapComponentProvider
+    @Inject
+    constructor(
+        private val factory: DefaultMapComponent.InternalFactory,
+    ) {
+        fun createMapMarkers(
+            markersFlow: Flow<List<GeoMarker>>,
+            selectedMarkerIdFlow: StateFlow<Long?>,
+            onMarkerSelected: (Long?) -> Unit,
+            componentContext: ComponentContext,
+        ): DefaultMapComponent =
+            factory.create(
+                markersFlow = markersFlow,
+                selectedMarkerIdFlow = selectedMarkerIdFlow,
+                onMarkerSelected = onMarkerSelected,
+                cameraPositionChanged = {},
+                componentContext = componentContext,
+            )
+
+        fun createLocationPicker(
+            cameraPositionChanged: (CameraPosition) -> Unit,
+            componentContext: ComponentContext,
+        ): DefaultMapComponent =
+            factory.create(
+                markersFlow = emptyFlow(),
+                selectedMarkerIdFlow = MutableStateFlow(null),
+                onMarkerSelected = {},
+                cameraPositionChanged = cameraPositionChanged,
+                componentContext = componentContext,
+            )
     }
