@@ -1,18 +1,22 @@
 package com.grebnev.feature.imagepicker.presentation
 
+import android.net.Uri
 import com.arkivanov.mvikotlin.core.store.Reducer
 import com.arkivanov.mvikotlin.core.store.Store
 import com.arkivanov.mvikotlin.core.store.StoreFactory
+import com.arkivanov.mvikotlin.extensions.coroutines.CoroutineBootstrapper
 import com.arkivanov.mvikotlin.extensions.coroutines.CoroutineExecutor
+import com.grebnev.core.gallery.GetImagesUriUseCase
 import com.grebnev.feature.imagepicker.presentation.ImagePickerStore.Intent
 import com.grebnev.feature.imagepicker.presentation.ImagePickerStore.Label
 import com.grebnev.feature.imagepicker.presentation.ImagePickerStore.State
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 interface ImagePickerStore : Store<Intent, State, Label> {
     sealed interface Intent {
         data class ImageClicked(
-            val imageUri: String,
+            val imageUri: Uri,
         ) : Intent
 
         data object OpenCameraClicked : Intent
@@ -23,8 +27,8 @@ interface ImagePickerStore : Store<Intent, State, Label> {
     }
 
     data class State(
-        val availableImagesUri: List<String>,
-        val selectedImagesUri: List<String>,
+        val availableImagesUri: List<Uri>,
+        val selectedImagesUri: List<Uri>,
     )
 
     sealed interface Label {
@@ -40,6 +44,7 @@ class ImagePickerStoreFactory
     @Inject
     constructor(
         private val storeFactory: StoreFactory,
+        private val getImagesUriUseCase: GetImagesUriUseCase,
     ) {
         fun create(): ImagePickerStore =
             object :
@@ -51,48 +56,61 @@ class ImagePickerStoreFactory
                             availableImagesUri = emptyList(),
                             selectedImagesUri = emptyList(),
                         ),
+                    bootstrapper = BootstrapperImpl(),
                     executorFactory = ::ExecutorImpl,
                     reducer = ReducerImpl,
                 ) {}
 
-        private sealed interface Action
+        private sealed interface Action {
+            data class ImagesLoaded(
+                val imagesUri: List<Uri>,
+            ) : Action
+        }
 
         private sealed interface Msg {
             data class ImagesLoaded(
-                val imagesUri: List<String>,
+                val imagesUri: List<Uri>,
             ) : Msg
 
             data class ImageToggled(
-                val imageUri: String,
+                val imageUri: Uri,
                 val isSelected: Boolean,
             ) : Msg
+        }
+
+        private inner class BootstrapperImpl : CoroutineBootstrapper<Action>() {
+            override fun invoke() {
+                scope.launch {
+                    val imagesUri = getImagesUriUseCase()
+                    dispatch(Action.ImagesLoaded(imagesUri))
+                }
+            }
         }
 
         private inner class ExecutorImpl : CoroutineExecutor<Intent, Action, State, Msg, Label>() {
             override fun executeIntent(intent: Intent) {
                 when (intent) {
-                    is Intent.ImageClicked -> toggleImage(intent.imageUri)
+                    is Intent.ImageClicked -> {
+                        val currentState = state()
+                        val isSelected = currentState.selectedImagesUri.contains(intent.imageUri)
+                        dispatch(Msg.ImageToggled(intent.imageUri, !isSelected))
+                    }
                     Intent.OpenCameraClicked -> openCamera()
-                    Intent.ConfirmClicked -> confirmSelection()
-                    Intent.CancelClicked -> cancelSelection()
+                    Intent.ConfirmClicked ->
+                        publish(Label.ImagesConfirmed)
+                    Intent.CancelClicked ->
+                        publish(Label.SelectionCancelled)
                 }
-            }
-
-            private fun toggleImage(imageUri: String) {
-                val currentState = state()
-                val isSelected = currentState.selectedImagesUri.contains(imageUri)
-                dispatch(Msg.ImageToggled(imageUri, !isSelected))
             }
 
             private fun openCamera() {
             }
 
-            private fun confirmSelection() {
-                publish(Label.ImagesConfirmed)
-            }
-
-            private fun cancelSelection() {
-                publish(Label.SelectionCancelled)
+            override fun executeAction(action: Action) {
+                when (action) {
+                    is Action.ImagesLoaded ->
+                        dispatch(Msg.ImagesLoaded(action.imagesUri))
+                }
             }
         }
 
