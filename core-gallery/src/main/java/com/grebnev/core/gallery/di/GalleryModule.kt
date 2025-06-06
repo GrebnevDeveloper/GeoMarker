@@ -1,6 +1,8 @@
-package com.grebnev.core.gallery
+package com.grebnev.core.gallery.di
 
 import android.content.Context
+import com.grebnev.core.gallery.domain.repository.GalleryRepository
+import com.grebnev.core.gallery.repository.GalleryRepositoryImpl
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn

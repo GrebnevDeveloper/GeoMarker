@@ -1,11 +1,18 @@
-package com.grebnev.core.gallery
+package com.grebnev.core.gallery.repository
 
 import android.content.ContentUris
 import android.content.Context
 import android.net.Uri
+import android.os.Environment
 import android.provider.MediaStore
+import androidx.core.content.FileProvider
+import com.grebnev.core.gallery.domain.repository.GalleryRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.io.File
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import javax.inject.Inject
 
 class GalleryRepositoryImpl
@@ -59,7 +66,34 @@ class GalleryRepositoryImpl
                 imagesUri
             }
 
-        override suspend fun takePhoto(): Uri? {
-            TODO("Not yet implemented")
+        override suspend fun getPhotoUri(): Uri? =
+            withContext(Dispatchers.IO) {
+                try {
+                    val photoFile =
+                        createTempImageFile(context).also {
+                            it.createNewFile()
+                        }
+
+                    val photoUri =
+                        FileProvider.getUriForFile(
+                            context,
+                            "${context.packageName}.fileprovider",
+                            photoFile,
+                        )
+
+                    photoUri
+                } catch (e: Exception) {
+                    null
+                }
+            }
+
+        private fun createTempImageFile(context: Context): File {
+            val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
+            val storageDir = context.getExternalFilesDir(Environment.DIRECTORY_PICTURES)
+            return File.createTempFile(
+                "JPEG_${timeStamp}_",
+                ".jpg",
+                storageDir,
+            )
         }
     }

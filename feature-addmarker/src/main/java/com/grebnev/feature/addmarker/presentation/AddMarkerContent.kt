@@ -48,7 +48,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
@@ -332,7 +331,7 @@ private fun TopBar(
     CenterAlignedTopAppBar(
         colors =
             TopAppBarColors(
-                containerColor = Color.Transparent,
+                containerColor = MaterialTheme.colorScheme.background,
                 navigationIconContentColor = MaterialTheme.colorScheme.primary,
                 actionIconContentColor = MaterialTheme.colorScheme.primary,
                 titleContentColor = MaterialTheme.colorScheme.primary,

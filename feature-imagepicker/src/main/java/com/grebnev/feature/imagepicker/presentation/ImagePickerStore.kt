@@ -6,7 +6,8 @@ import com.arkivanov.mvikotlin.core.store.Store
 import com.arkivanov.mvikotlin.core.store.StoreFactory
 import com.arkivanov.mvikotlin.extensions.coroutines.CoroutineBootstrapper
 import com.arkivanov.mvikotlin.extensions.coroutines.CoroutineExecutor
-import com.grebnev.core.gallery.GetImagesUriUseCase
+import com.grebnev.core.gallery.domain.usecase.GetImagesUriUseCase
+import com.grebnev.core.gallery.domain.usecase.GetPhotoUriUseCase
 import com.grebnev.feature.imagepicker.presentation.ImagePickerStore.Intent
 import com.grebnev.feature.imagepicker.presentation.ImagePickerStore.Label
 import com.grebnev.feature.imagepicker.presentation.ImagePickerStore.State
@@ -25,6 +26,10 @@ interface ImagePickerStore : Store<Intent, State, Label> {
 
         data object OpenCameraClicked : Intent
 
+        data class PhotoTaken(
+            val result: Boolean,
+        ) : Intent
+
         data object ConfirmClicked : Intent
 
         data object CancelClicked : Intent
@@ -33,6 +38,7 @@ interface ImagePickerStore : Store<Intent, State, Label> {
     data class State(
         val availableImagesUri: List<Uri>,
         val selectedImagesUri: List<Uri>,
+        val photoUri: Uri?,
     )
 
     sealed interface Label {
@@ -49,6 +55,7 @@ class ImagePickerStoreFactory
     constructor(
         private val storeFactory: StoreFactory,
         private val getImagesUriUseCase: GetImagesUriUseCase,
+        private val getPhotoUriUseCase: GetPhotoUriUseCase,
     ) {
         fun create(): ImagePickerStore =
             object :
@@ -59,6 +66,7 @@ class ImagePickerStoreFactory
                         State(
                             availableImagesUri = emptyList(),
                             selectedImagesUri = emptyList(),
+                            photoUri = null,
                         ),
                     bootstrapper = BootstrapperImpl(),
                     executorFactory = ::ExecutorImpl,
@@ -68,6 +76,10 @@ class ImagePickerStoreFactory
         private sealed interface Action {
             data class ImagesLoaded(
                 val imagesUri: List<Uri>,
+            ) : Action
+
+            data class PhotoUriPrepared(
+                val photoUri: Uri,
             ) : Action
         }
 
@@ -84,11 +96,24 @@ class ImagePickerStoreFactory
             data class SelectedImagesSynced(
                 val currentImagesUri: List<Uri>,
             ) : Msg
+
+            data class TakenPhotoAdded(
+                val photoUri: Uri,
+            ) : Msg
+
+            data class PhotoUriPrepared(
+                val photoUri: Uri,
+            ) : Msg
         }
 
         private inner class BootstrapperImpl : CoroutineBootstrapper<Action>() {
             override fun invoke() {
                 scope.launch {
+                    val photoUri = getPhotoUriUseCase()
+                    photoUri?.let {
+                        dispatch(Action.PhotoUriPrepared(photoUri))
+                    }
+
                     val imagesUri = getImagesUriUseCase()
                     dispatch(Action.ImagesLoaded(imagesUri))
                 }
@@ -103,7 +128,11 @@ class ImagePickerStoreFactory
                         val isSelected = currentState.selectedImagesUri.contains(intent.imageUri)
                         dispatch(Msg.ImageToggled(intent.imageUri, !isSelected))
                     }
-                    Intent.OpenCameraClicked -> openCamera()
+                    Intent.OpenCameraClicked -> {
+                        scope.launch {
+                            openCamera()
+                        }
+                    }
                     Intent.ConfirmClicked ->
                         publish(Label.ImagesConfirmed)
                     Intent.CancelClicked ->
@@ -111,16 +140,32 @@ class ImagePickerStoreFactory
 
                     is Intent.SyncSelectedImages ->
                         dispatch(Msg.SelectedImagesSynced(intent.currentImagesUri))
+
+                    is Intent.PhotoTaken -> {
+                        if (intent.result) {
+                            state().photoUri?.let {
+                                dispatch(Msg.TakenPhotoAdded(it))
+                            }
+                        }
+                    }
                 }
             }
 
-            private fun openCamera() {
+            private suspend fun openCamera() {
+                val imageUri = getPhotoUriUseCase()
+                imageUri?.let {
+                    dispatch(Msg.TakenPhotoAdded(it))
+                }
             }
 
             override fun executeAction(action: Action) {
                 when (action) {
                     is Action.ImagesLoaded ->
                         dispatch(Msg.ImagesLoaded(action.imagesUri))
+
+                    is Action.PhotoUriPrepared -> {
+                        dispatch(Msg.PhotoUriPrepared(action.photoUri))
+                    }
                 }
             }
         }
@@ -138,6 +183,13 @@ class ImagePickerStoreFactory
                     }
 
                     is Msg.SelectedImagesSynced -> copy(selectedImagesUri = msg.currentImagesUri)
+                    is Msg.TakenPhotoAdded ->
+                        copy(
+                            availableImagesUri = availableImagesUri + msg.photoUri,
+                            selectedImagesUri = selectedImagesUri + msg.photoUri,
+                        )
+
+                    is Msg.PhotoUriPrepared -> copy(photoUri = msg.photoUri)
                 }
         }
     }

@@ -1,6 +1,8 @@
 package com.grebnev.feature.imagepicker.presentation
 
 import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -45,6 +47,10 @@ fun ImagePickerContent(
     modifier: Modifier = Modifier,
 ) {
     val state by component.model.subscribeAsState()
+    val takePhotoLauncher =
+        rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { result ->
+            component.onIntent(ImagePickerStore.Intent.PhotoTaken(result))
+        }
 
     Column(
         modifier = modifier.padding(16.dp),
@@ -79,7 +85,13 @@ fun ImagePickerContent(
         ) {
             item {
                 CameraPlaceholderItem(
-                    onClick = { component.onIntent(ImagePickerStore.Intent.OpenCameraClicked) },
+                    onClick = {
+                        state.photoUri?.let {
+                            takePhotoLauncher.launch(it)
+                        }
+
+                        component.onIntent(ImagePickerStore.Intent.OpenCameraClicked)
+                    },
                 )
             }
 
