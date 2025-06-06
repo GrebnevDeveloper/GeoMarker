@@ -1,5 +1,6 @@
 package com.grebnev.feature.imagepicker.presentation
 
+import android.net.Uri
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
@@ -18,7 +19,8 @@ class DefaultImagePickerComponent
     @AssistedInject
     constructor(
         private val imagePickerStoreFactory: ImagePickerStoreFactory,
-        @Assisted private val onImagesSelectedUri: (List<String>) -> Unit,
+        @Assisted private val onImagesSelectedUri: (List<Uri>) -> Unit,
+        @Assisted private val onSelectionCancelled: () -> Unit,
         @Assisted componentContext: ComponentContext,
     ) : ImagePickerComponent,
         ComponentContext by componentContext {
@@ -42,8 +44,10 @@ class DefaultImagePickerComponent
                         ImagePickerStore.Label.ImagesConfirmed ->
                             onImagesSelectedUri(model.value.selectedImagesUri)
 
-                        ImagePickerStore.Label.CameraOpened -> TODO()
-                        ImagePickerStore.Label.SelectionCancelled -> TODO()
+                        ImagePickerStore.Label.CameraOpened -> {}
+                        ImagePickerStore.Label.SelectionCancelled -> {
+                            onSelectionCancelled()
+                        }
                     }
                 }
             }
@@ -56,7 +60,8 @@ class DefaultImagePickerComponent
         @AssistedFactory
         interface Factory {
             fun create(
-                @Assisted onImagesSelectedUri: (List<String>) -> Unit,
+                @Assisted onImagesSelectedUri: (List<Uri>) -> Unit,
+                @Assisted onSelectionCanceled: () -> Unit,
                 @Assisted componentContext: ComponentContext,
             ): DefaultImagePickerComponent
         }

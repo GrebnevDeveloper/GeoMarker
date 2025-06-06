@@ -15,7 +15,11 @@ import javax.inject.Inject
 
 interface ImagePickerStore : Store<Intent, State, Label> {
     sealed interface Intent {
-        data class ImageClicked(
+        data class SyncSelectedImages(
+            val currentImagesUri: List<Uri>,
+        ) : Intent
+
+        class ImageClicked(
             val imageUri: Uri,
         ) : Intent
 
@@ -76,6 +80,10 @@ class ImagePickerStoreFactory
                 val imageUri: Uri,
                 val isSelected: Boolean,
             ) : Msg
+
+            data class SelectedImagesSynced(
+                val currentImagesUri: List<Uri>,
+            ) : Msg
         }
 
         private inner class BootstrapperImpl : CoroutineBootstrapper<Action>() {
@@ -100,6 +108,9 @@ class ImagePickerStoreFactory
                         publish(Label.ImagesConfirmed)
                     Intent.CancelClicked ->
                         publish(Label.SelectionCancelled)
+
+                    is Intent.SyncSelectedImages ->
+                        dispatch(Msg.SelectedImagesSynced(intent.currentImagesUri))
                 }
             }
 
@@ -125,6 +136,8 @@ class ImagePickerStoreFactory
                             copy(selectedImagesUri = selectedImagesUri - msg.imageUri)
                         }
                     }
+
+                    is Msg.SelectedImagesSynced -> copy(selectedImagesUri = msg.currentImagesUri)
                 }
         }
     }

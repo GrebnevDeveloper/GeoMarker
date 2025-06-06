@@ -1,5 +1,6 @@
 package com.grebnev.feature.addmarker.presentation
 
+import android.net.Uri
 import com.arkivanov.mvikotlin.core.store.Reducer
 import com.arkivanov.mvikotlin.core.store.Store
 import com.arkivanov.mvikotlin.core.store.StoreFactory
@@ -32,13 +33,29 @@ interface AddMarkerStore : Store<Intent, State, Label> {
         data object SubmitClicked : Intent
 
         data object BackClicked : Intent
+
+        data class AddImagesClicked(
+            val currentImagesUri: List<Uri>,
+        ) : Intent
+
+        data class ConfirmImagesSelection(
+            val imagesUri: List<Uri>,
+        ) : Intent
+
+        data object CancelImagesSelection : Intent
+
+        data class RemoveImage(
+            val imageUri: Uri,
+        ) : Intent
     }
 
     data class State(
         val title: String,
         val description: String,
-        val position: CameraPosition,
+        val location: CameraPosition,
         val validationErrors: List<ValidationError>,
+        val selectedImages: List<Uri>,
+        val showImagePicker: Boolean,
     ) {
         enum class ValidationError {
             TITLE_EMPTY,
@@ -49,9 +66,13 @@ interface AddMarkerStore : Store<Intent, State, Label> {
     }
 
     sealed interface Label {
-        data object MarkerAdded : Label
+        data object SubmitClicked : Label
 
         data object BackClicked : Label
+
+        data class AddImagesClicked(
+            val currentImagesUri: List<Uri>,
+        ) : Label
     }
 }
 
@@ -71,7 +92,7 @@ class AddMarkerStoreFactory
                             State(
                                 title = "",
                                 description = "",
-                                position =
+                                location =
                                     CameraPosition(
                                         Point(
                                             Random.nextDouble(56.7, 56.9),
@@ -82,6 +103,8 @@ class AddMarkerStoreFactory
                                         0f,
                                     ),
                                 validationErrors = emptyList(),
+                                selectedImages = emptyList(),
+                                showImagePicker = false,
                             ),
                         executorFactory = ::ExecutorImpl,
                         reducer = ReducerImpl,
@@ -105,10 +128,21 @@ class AddMarkerStoreFactory
             data class ValidationFailed(
                 val errors: List<State.ValidationError>,
             ) : Msg
+
+            data class ImagesSelected(
+                val imagesUri: List<Uri>,
+            ) : Msg
+
+            data class ShowImagePicker(
+                val isShow: Boolean,
+            ) : Msg
+
+            data class ImageRemoved(
+                val imageUri: Uri,
+            ) : Msg
         }
 
-        private inner class ExecutorImpl :
-            CoroutineExecutor<Intent, Action, State, Msg, Label>() {
+        private inner class ExecutorImpl : CoroutineExecutor<Intent, Action, State, Msg, Label>() {
             override fun executeIntent(intent: Intent) {
                 when (intent) {
                     is Intent.TitleChanged ->
@@ -126,6 +160,22 @@ class AddMarkerStoreFactory
 
                     is Intent.CameraPositionChanged ->
                         dispatch(Msg.CameraPositionChanged(intent.position))
+
+                    is Intent.AddImagesClicked -> {
+                        dispatch(Msg.ShowImagePicker(true))
+                        publish(Label.AddImagesClicked(intent.currentImagesUri))
+                    }
+
+                    Intent.CancelImagesSelection ->
+                        dispatch(Msg.ShowImagePicker(false))
+
+                    is Intent.ConfirmImagesSelection -> {
+                        dispatch(Msg.ImagesSelected(intent.imagesUri))
+                        dispatch(Msg.ShowImagePicker(false))
+                    }
+
+                    is Intent.RemoveImage ->
+                        dispatch(Msg.ImageRemoved(intent.imageUri))
                 }
             }
 
@@ -143,11 +193,11 @@ class AddMarkerStoreFactory
                         GeoMarker(
                             title = state.title,
                             description = state.description,
-                            latitude = state.position.target.latitude,
-                            longitude = state.position.target.longitude,
+                            latitude = state.location.target.latitude,
+                            longitude = state.location.target.longitude,
                         ),
                     )
-                    publish(Label.MarkerAdded)
+                    publish(Label.SubmitClicked)
                 }
             }
         }
@@ -165,7 +215,10 @@ class AddMarkerStoreFactory
                     is Msg.TitleUpdated -> copy(title = msg.title)
                     is Msg.DescriptionUpdated -> copy(description = msg.description)
                     is Msg.ValidationFailed -> copy(validationErrors = msg.errors)
-                    is Msg.CameraPositionChanged -> copy(position = msg.position)
+                    is Msg.CameraPositionChanged -> copy(location = msg.position)
+                    is Msg.ImagesSelected -> copy(selectedImages = msg.imagesUri)
+                    is Msg.ShowImagePicker -> copy(showImagePicker = msg.isShow)
+                    is Msg.ImageRemoved -> copy(selectedImages = selectedImages - msg.imageUri)
                 }
         }
     }

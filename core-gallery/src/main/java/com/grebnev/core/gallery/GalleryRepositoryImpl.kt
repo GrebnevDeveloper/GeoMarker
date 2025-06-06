@@ -21,14 +21,26 @@ class GalleryRepositoryImpl
                         MediaStore.Images.Media._ID,
                     )
 
-                val sortOrder = "${MediaStore.Images.Media.DATE_ADDED} DESC"
+                val selection =
+                    "${MediaStore.Images.Media.MIME_TYPE} = ? OR " +
+                        "${MediaStore.Images.Media.MIME_TYPE} = ? OR " +
+                        "${MediaStore.Images.Media.MIME_TYPE} = ?"
+
+                val selectionArgs =
+                    arrayOf(
+                        "image/jpeg",
+                        "image/png",
+                        "image/webp",
+                    )
+
+                val sortOrder = "${MediaStore.Images.Media.DATE_TAKEN} DESC"
 
                 context.contentResolver
                     .query(
                         MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
                         projection,
-                        null,
-                        null,
+                        selection,
+                        selectionArgs,
                         sortOrder,
                     )?.use { cursor ->
                         val idColumn = cursor.getColumnIndexOrThrow(MediaStore.Images.Media._ID)

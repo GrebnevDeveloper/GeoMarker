@@ -22,10 +22,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -34,11 +32,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
+import coil3.compose.rememberAsyncImagePainter
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
+import com.grebnev.core.ui.R
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ImagePickerContent(
     component: ImagePickerComponent,
@@ -46,54 +46,49 @@ fun ImagePickerContent(
 ) {
     val state by component.model.subscribeAsState()
 
-    ModalBottomSheet(
-        onDismissRequest = { component.onIntent(ImagePickerStore.Intent.CancelClicked) },
-        modifier = modifier,
+    Column(
+        modifier = modifier.padding(16.dp),
     ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
+        Row(
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth(),
         ) {
-            Row(
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth(),
+            TextButton(
+                onClick = { component.onIntent(ImagePickerStore.Intent.CancelClicked) },
             ) {
-                TextButton(
-                    onClick = { component.onIntent(ImagePickerStore.Intent.CancelClicked) },
-                ) {
-                    Text("Cancel")
-                }
-
-                Text(
-                    text = "Select images",
-                    style = MaterialTheme.typography.titleMedium,
-                )
-
-                TextButton(
-                    onClick = { component.onIntent(ImagePickerStore.Intent.ConfirmClicked) },
-                    enabled = state.selectedImagesUri.isNotEmpty(),
-                ) {
-                    Text("Confirm")
-                }
+                Text("Cancel")
             }
 
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(3),
-                modifier = Modifier.heightIn(max = 400.dp),
-            ) {
-                item {
-                    CameraPlaceholderItem(
-                        onClick = { component.onIntent(ImagePickerStore.Intent.OpenCameraClicked) },
-                    )
-                }
+            Text(
+                text = "Select images",
+                style = MaterialTheme.typography.titleMedium,
+            )
 
-                items(items = state.availableImagesUri) { imageUri ->
-                    ImageThumbnailItem(
-                        imageUri = imageUri,
-                        isSelected = state.selectedImagesUri.contains(imageUri),
-                        onClick = { component.onIntent(ImagePickerStore.Intent.ImageClicked(imageUri)) },
-                    )
-                }
+            TextButton(
+                onClick = { component.onIntent(ImagePickerStore.Intent.ConfirmClicked) },
+                enabled = state.selectedImagesUri.isNotEmpty(),
+            ) {
+                Text("Confirm")
+            }
+        }
+
+        LazyVerticalGrid(
+            columns = GridCells.Fixed(3),
+            modifier = Modifier.heightIn(max = 400.dp),
+        ) {
+            item {
+                CameraPlaceholderItem(
+                    onClick = { component.onIntent(ImagePickerStore.Intent.OpenCameraClicked) },
+                )
+            }
+
+            items(items = state.availableImagesUri) { imageUri ->
+                ImageThumbnailItem(
+                    imageUri = imageUri,
+                    isSelected = state.selectedImagesUri.contains(imageUri),
+                    onClick = { component.onIntent(ImagePickerStore.Intent.ImageClicked(imageUri)) },
+                )
             }
         }
     }
@@ -134,11 +129,14 @@ private fun ImageThumbnailItem(
         AsyncImage(
             model = imageUri,
             contentDescription = null,
+            contentScale = ContentScale.Crop,
             modifier =
                 Modifier
                     .fillMaxSize()
                     .clip(RoundedCornerShape(8.dp))
                     .clickable(onClick = onClick),
+            placeholder =
+                rememberAsyncImagePainter(R.drawable.ic_image_placeholder),
         )
 
         if (isSelected) {

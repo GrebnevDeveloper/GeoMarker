@@ -31,6 +31,7 @@ android {
 dependencies {
     implementation(project(":core-extensions"))
     implementation(project(":core-gallery"))
+    implementation(project(":core-ui"))
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity.compose)
