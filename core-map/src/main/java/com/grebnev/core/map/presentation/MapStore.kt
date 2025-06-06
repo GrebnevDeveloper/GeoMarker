@@ -1,11 +1,11 @@
 package com.grebnev.core.map.presentation
 
-import androidx.compose.material3.Label
 import com.arkivanov.mvikotlin.core.store.Reducer
 import com.arkivanov.mvikotlin.core.store.Store
 import com.arkivanov.mvikotlin.core.store.StoreFactory
 import com.arkivanov.mvikotlin.extensions.coroutines.CoroutineBootstrapper
 import com.arkivanov.mvikotlin.extensions.coroutines.CoroutineExecutor
+import com.arkivanov.mvikotlin.extensions.coroutines.stateFlow
 import com.grebnev.core.domain.entity.GeoMarker
 import com.grebnev.core.location.domain.entity.LocationStatus
 import com.grebnev.core.location.domain.usecase.GetCurrentLocationUseCase
@@ -13,10 +13,10 @@ import com.grebnev.core.location.domain.usecase.ManageLocationUpdatesUseCase
 import com.grebnev.core.map.presentation.MapStore.Intent
 import com.grebnev.core.map.presentation.MapStore.Label
 import com.grebnev.core.map.presentation.MapStore.State
+import com.grebnev.feature.geomarker.api.GeoMarkerStore
 import com.yandex.mapkit.geometry.Point
 import com.yandex.mapkit.map.CameraPosition
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -80,10 +80,7 @@ class MapStoreFactory
         private val manageLocationUpdates: ManageLocationUpdatesUseCase,
         private val getCurrentLocation: GetCurrentLocationUseCase,
     ) {
-        fun create(
-            markersFlow: Flow<List<GeoMarker>>,
-            selectedMarkerIdFlow: StateFlow<Long?>,
-        ): MapStore =
+        fun create(geoMarkerStore: GeoMarkerStore?): MapStore =
             object :
                 MapStore,
                 Store<Intent, State, Label> by storeFactory.create(
@@ -97,7 +94,7 @@ class MapStoreFactory
                             markers = emptyList(),
                             selectedMarkerId = null,
                         ),
-                    bootstrapper = BootstrapperImpl(markersFlow, selectedMarkerIdFlow),
+                    bootstrapper = BootstrapperImpl(geoMarkerStore),
                     executorFactory = ::ExecutorImpl,
                     reducer = ReducerImpl,
                 ) {}
@@ -150,31 +147,33 @@ class MapStoreFactory
             ) : Msg
         }
 
+        @OptIn(ExperimentalCoroutinesApi::class)
         private inner class BootstrapperImpl(
-            private val markersFlow: Flow<List<GeoMarker>>,
-            private val selectedMarkerIdFlow: StateFlow<Long?>,
+            private val geoMarkerStore: GeoMarkerStore?,
         ) : CoroutineBootstrapper<Action>() {
             override fun invoke() {
                 scope.launch {
                     determineCurrentLocation()
                 }
-                scope.launch {
-                    updateMarkers(markersFlow)
-                }
-                scope.launch {
-                    setSelectedMarker(selectedMarkerIdFlow)
-                }
-            }
-
-            private suspend fun setSelectedMarker(selectedMarkerIdFlow: StateFlow<Long?>) {
-                selectedMarkerIdFlow.collect { markerId ->
-                    dispatch(Action.MarkerSelected(markerId))
+                geoMarkerStore?.let { store ->
+                    scope.launch {
+                        updateMarkers(store)
+                    }
+                    scope.launch {
+                        setSelectedMarker(store)
+                    }
                 }
             }
 
-            private suspend fun updateMarkers(markersFlow: Flow<List<GeoMarker>>) {
-                markersFlow.collect { markers ->
-                    dispatch(Action.MarkersUpdated(markers))
+            private suspend fun setSelectedMarker(store: GeoMarkerStore) {
+                store.stateFlow.collect { state ->
+                    dispatch(Action.MarkerSelected(state.selectedMarkerId))
+                }
+            }
+
+            private suspend fun updateMarkers(store: GeoMarkerStore) {
+                store.stateFlow.collect { state ->
+                    dispatch(Action.MarkersUpdated(state.markers))
                 }
             }
 

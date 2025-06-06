@@ -37,6 +37,7 @@ dependencies {
     implementation(project(":core-database"))
     implementation(project(":core-extensions"))
     implementation(project(":feature-bottomsheet-navigation"))
+    implementation(project(":feature-geomarker-api"))
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity.compose)

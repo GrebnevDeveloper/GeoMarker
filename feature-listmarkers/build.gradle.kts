@@ -32,6 +32,7 @@ android {
 dependencies {
     implementation(project(":core-domain"))
     implementation(project(":core-extensions"))
+    implementation(project(":feature-geomarker-api"))
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity.compose)

@@ -5,11 +5,13 @@ import com.arkivanov.mvikotlin.core.store.Store
 import com.arkivanov.mvikotlin.core.store.StoreFactory
 import com.arkivanov.mvikotlin.extensions.coroutines.CoroutineBootstrapper
 import com.arkivanov.mvikotlin.extensions.coroutines.CoroutineExecutor
+import com.arkivanov.mvikotlin.extensions.coroutines.stateFlow
 import com.grebnev.core.domain.entity.GeoMarker
+import com.grebnev.feature.geomarker.api.GeoMarkerStore
 import com.grebnev.feature.listmarkers.ListMarkersStore.Intent
 import com.grebnev.feature.listmarkers.ListMarkersStore.Label
 import com.grebnev.feature.listmarkers.ListMarkersStore.State
-import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -21,7 +23,7 @@ interface ListMarkersStore : Store<Intent, State, Label> {
     }
 
     data class State(
-        val markers: List<GeoMarker> = emptyList(),
+        val markers: List<GeoMarker>,
     )
 
     sealed interface Label {
@@ -36,13 +38,16 @@ class ListMarkersStoreFactory
     constructor(
         private val storeFactory: StoreFactory,
     ) {
-        fun create(markersFlow: Flow<List<GeoMarker>>): ListMarkersStore =
+        fun create(geoMarkerStore: GeoMarkerStore): ListMarkersStore =
             object :
                 ListMarkersStore,
                 Store<Intent, State, Label> by storeFactory.create(
                     name = "ListMarkersStore",
-                    initialState = State(),
-                    bootstrapper = BootstrapperImpl(markersFlow),
+                    initialState =
+                        State(
+                            markers = emptyList(),
+                        ),
+                    bootstrapper = BootstrapperImpl(geoMarkerStore),
                     executorFactory = ::ExecutorImpl,
                     reducer = ReducerImpl,
                 ) {}
@@ -59,13 +64,14 @@ class ListMarkersStoreFactory
             ) : Msg
         }
 
+        @OptIn(ExperimentalCoroutinesApi::class)
         private inner class BootstrapperImpl(
-            private val markersFlow: Flow<List<GeoMarker>>,
+            private val geoMarkerStore: GeoMarkerStore,
         ) : CoroutineBootstrapper<Action>() {
             override fun invoke() {
                 scope.launch {
-                    markersFlow.collect { markers ->
-                        dispatch(Action.MarkersUpdated(markers))
+                    geoMarkerStore.stateFlow.collect { state ->
+                        dispatch(Action.MarkersUpdated(state.markers))
                     }
                 }
             }
