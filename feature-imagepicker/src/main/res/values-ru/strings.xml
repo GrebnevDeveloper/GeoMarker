@@ -2,4 +2,7 @@
 <resources>
     <string name="media_images_access">доступ к мультимедийным изображениям</string>
     <string name="external_storage_access">доступ к внешнему хранилищу данных</string>
+    <string name="confirm">Выбрать</string>
+    <string name="select_images">Выбор изображения</string>
+    <string name="cancel">Отмена</string>
 </resources>

@@ -47,10 +47,8 @@ class DefaultImagePickerComponent
                         ImagePickerStore.Label.ImagesConfirmed ->
                             onImagesSelectedUri(model.value.selectedImagesUri)
 
-                        ImagePickerStore.Label.CameraOpened -> {}
-                        ImagePickerStore.Label.SelectionCancelled -> {
+                        ImagePickerStore.Label.SelectionCancelled ->
                             onSelectionCancelled()
-                        }
                     }
                 }
             }

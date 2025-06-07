@@ -35,6 +35,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import coil3.compose.rememberAsyncImagePainter
@@ -63,11 +64,11 @@ fun ImagePickerContent(
             TextButton(
                 onClick = { component.onIntent(ImagePickerStore.Intent.CancelClicked) },
             ) {
-                Text("Cancel")
+                Text(stringResource(com.grebnev.feature.imagepicker.R.string.cancel))
             }
 
             Text(
-                text = "Select images",
+                text = stringResource(com.grebnev.feature.imagepicker.R.string.select_images),
                 style = MaterialTheme.typography.titleMedium,
             )
 
@@ -75,7 +76,7 @@ fun ImagePickerContent(
                 onClick = { component.onIntent(ImagePickerStore.Intent.ConfirmClicked) },
                 enabled = state.selectedImagesUri.isNotEmpty(),
             ) {
-                Text("Confirm")
+                Text(stringResource(com.grebnev.feature.imagepicker.R.string.confirm))
             }
         }
 
@@ -89,8 +90,6 @@ fun ImagePickerContent(
                         state.photoUri?.let {
                             takePhotoLauncher.launch(it)
                         }
-
-                        component.onIntent(ImagePickerStore.Intent.OpenCameraClicked)
                     },
                 )
             }
