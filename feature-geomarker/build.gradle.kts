@@ -8,17 +8,23 @@ plugins {
 
 android {
     namespace = "com.grebnev.feature.geomarker"
-    compileSdk = 35
+    compileSdk =
+        libs.versions.androidCompileSdk
+            .get()
+            .toInt()
 
     defaultConfig {
-        minSdk = 26
+        minSdk =
+            libs.versions.androidMinSdk
+                .get()
+                .toInt()
     }
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
+        sourceCompatibility = JavaVersion.toVersion(libs.versions.jvmTarget.get())
+        targetCompatibility = JavaVersion.toVersion(libs.versions.jvmTarget.get())
     }
     kotlinOptions {
-        jvmTarget = "17"
+        jvmTarget = libs.versions.jvmTarget.get()
     }
     buildFeatures {
         compose = true
@@ -31,6 +37,7 @@ dependencies {
     implementation(project(":core-database"))
     implementation(project(":core-extensions"))
     implementation(project(":feature-bottomsheet-navigation"))
+    implementation(project(":feature-geomarker-api"))
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity.compose)

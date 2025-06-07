@@ -12,6 +12,7 @@ import com.grebnev.core.map.presentation.DefaultMapComponentProvider
 import com.grebnev.core.map.presentation.MapComponent
 import com.grebnev.feature.bottomsheet.navigation.BottomSheetComponent
 import com.grebnev.feature.bottomsheet.navigation.DefaultBottomSheetComponent
+import com.grebnev.feature.geomarker.api.GeoMarkerStore
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
@@ -22,14 +23,14 @@ import kotlinx.coroutines.launch
 class DefaultGeoMarkerComponent
     @AssistedInject
     constructor(
-        private val geoMarkersStoreFactory: GeoMarkersStoreFactory,
+        private val geoMarkerStoreFactory: GeoMarkerStoreFactory,
         private val mapComponentProvider: DefaultMapComponentProvider,
         private val bottomSheetComponentFactory: DefaultBottomSheetComponent.Factory,
         @Assisted private val onAddMarkerClicked: () -> Unit,
         @Assisted componentContext: ComponentContext,
     ) : GeoMarkerComponent,
         ComponentContext by componentContext {
-        private val store = instanceKeeper.getStore { geoMarkersStoreFactory.create() }
+        private val store = instanceKeeper.getStore { geoMarkerStoreFactory.create() }
 
         private val _model = MutableValue(store.stateFlow.value)
         override val model: Value<GeoMarkerStore.State> = _model
@@ -53,16 +54,14 @@ class DefaultGeoMarkerComponent
 
         override val mapComponent: MapComponent =
             mapComponentProvider.createMapMarkers(
-                markersFlow = model.value.markersFlow,
-                selectedMarkerIdFlow = model.value.selectedMarkerId,
+                geoMarkerStore = store,
                 onMarkerSelected = { markerId -> store.accept(GeoMarkerStore.Intent.SelectMarker(markerId)) },
                 componentContext = childContext("MapComponent"),
             )
 
         override val bottomSheetComponent: BottomSheetComponent =
             bottomSheetComponentFactory.create(
-                markersFlow = model.value.markersFlow,
-                selectedMarkerIdFlow = model.value.selectedMarkerId,
+                geoMarkerStore = store,
                 onMarkerSelected = { markerId -> store.accept(GeoMarkerStore.Intent.SelectMarker(markerId)) },
                 componentContext = childContext("BottomSheetComponent"),
             )

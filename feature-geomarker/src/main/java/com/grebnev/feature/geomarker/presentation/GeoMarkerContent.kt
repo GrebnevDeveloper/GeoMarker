@@ -17,7 +17,6 @@ import androidx.compose.material3.rememberBottomSheetScaffoldState
 import androidx.compose.material3.rememberStandardBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -26,6 +25,7 @@ import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.grebnev.core.map.presentation.MapContent
 import com.grebnev.feature.bottomsheet.navigation.BottomSheetContent
+import com.grebnev.feature.geomarker.api.GeoMarkerStore
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -39,10 +39,9 @@ fun GeoMarkerContent(component: GeoMarkerComponent) {
                 ),
         )
     val store by component.model.subscribeAsState()
-    val selectedMarkerId by store.selectedMarkerId.collectAsState()
 
-    LaunchedEffect(selectedMarkerId) {
-        if (selectedMarkerId == null) {
+    LaunchedEffect(store.selectedMarkerId) {
+        if (store.selectedMarkerId == null) {
             sheetState.bottomSheetState.partialExpand()
         } else {
             sheetState.bottomSheetState.expand()

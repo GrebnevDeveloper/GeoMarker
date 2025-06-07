@@ -10,29 +10,28 @@ import com.arkivanov.decompose.router.stack.push
 import com.arkivanov.decompose.router.stack.replaceCurrent
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.essenty.backhandler.BackCallback
-import com.grebnev.core.domain.entity.GeoMarker
+import com.arkivanov.mvikotlin.extensions.coroutines.stateFlow
 import com.grebnev.core.extensions.componentScope
 import com.grebnev.feature.bottomsheet.navigation.BottomSheetComponent.Child.DetailsMarker
 import com.grebnev.feature.bottomsheet.navigation.BottomSheetComponent.Child.ListMarkers
 import com.grebnev.feature.detailsmarker.presentation.DefaultDetailsMarkerComponent
+import com.grebnev.feature.geomarker.api.GeoMarkerStore
 import com.grebnev.feature.listmarkers.DefaultListMarkersComponent
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 
-@OptIn(DelicateDecomposeApi::class)
+@OptIn(DelicateDecomposeApi::class, ExperimentalCoroutinesApi::class)
 class DefaultBottomSheetComponent
     @AssistedInject
     constructor(
         private val listMarkersComponentFactory: DefaultListMarkersComponent.Factory,
         private val detailsMarkerComponentFactory: DefaultDetailsMarkerComponent.Factory,
         @Assisted private val onMarkerSelected: (Long?) -> Unit,
-        @Assisted markersFlow: Flow<List<GeoMarker>>,
-        @Assisted selectedMarkerIdFlow: StateFlow<Long?>,
+        @Assisted private val geoMarkerStore: GeoMarkerStore,
         @Assisted component: ComponentContext,
     ) : BottomSheetComponent,
         ComponentContext by component {
@@ -44,7 +43,7 @@ class DefaultBottomSheetComponent
             childStack(
                 source = navigation,
                 serializer = Config.serializer(),
-                initialConfiguration = Config.ListMarkers(markersFlow),
+                initialConfiguration = Config.ListMarkers,
                 handleBackButton = true,
                 childFactory = ::createChild,
             )
@@ -53,8 +52,8 @@ class DefaultBottomSheetComponent
 
         init {
             scope.launch {
-                selectedMarkerIdFlow.collect { markerId ->
-                    handleMarkerSelection(markerId)
+                geoMarkerStore.stateFlow.collect { state ->
+                    handleMarkerSelection(state.selectedMarkerId)
                 }
             }
             scope.launch {
@@ -117,7 +116,7 @@ class DefaultBottomSheetComponent
                 is Config.ListMarkers -> {
                     val component =
                         listMarkersComponentFactory.create(
-                            markersFlow = config.markersFlow,
+                            geoMarkerStore = geoMarkerStore,
                             onMarkerSelected = { marker ->
                                 onMarkerSelected(marker.id)
                             },
@@ -142,9 +141,7 @@ class DefaultBottomSheetComponent
         @Serializable
         sealed interface Config {
             @Serializable
-            data class ListMarkers(
-                val markersFlow: Flow<List<GeoMarker>>,
-            ) : Config
+            data object ListMarkers : Config
 
             @Serializable
             data class DetailsMarker(
@@ -155,8 +152,7 @@ class DefaultBottomSheetComponent
         @AssistedFactory
         interface Factory {
             fun create(
-                @Assisted markersFlow: Flow<List<GeoMarker>>,
-                @Assisted selectedMarkerIdFlow: StateFlow<Long?>,
+                @Assisted geoMarkerStore: GeoMarkerStore,
                 @Assisted onMarkerSelected: (Long?) -> Unit,
                 @Assisted componentContext: ComponentContext,
             ): DefaultBottomSheetComponent

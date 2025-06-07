@@ -1,4 +1,12 @@
 [versions]
+androidCompileSdk = "35"
+androidTargetSdk = "35"
+androidMinSdk = "26"
+jvmTarget = "17"
+
+versionCode = "1"
+versionName = "1.0"
+
 agp = "8.10.1"
 kotlin = "2.1.21"
 coreKtx = "1.16.0"
@@ -24,6 +32,7 @@ jetbrainsKotlinJvm = "2.1.21"
 room = "2.7.1"
 appcompat = "1.7.0"
 material = "1.12.0"
+coil = "3.2.0"
 
 [libraries]
 androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "coreKtx" }
@@ -61,6 +70,7 @@ room-compiler = { group = "androidx.room", name = "room-compiler", version.ref =
 room-coroutines = { group = "androidx.room", name = "room-ktx", version.ref = "room" }
 androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" }
 material = { group = "com.google.android.material", name = "material", version.ref = "material" }
+coil = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coil"}
 
 [bundles]
 ui = ["androidx-ui", "androidx-ui-graphics", "androidx-ui-tooling", "androidx-ui-tooling-preview", "androidx-material3"]

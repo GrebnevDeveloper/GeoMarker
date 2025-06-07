@@ -8,18 +8,24 @@ plugins {
 
 android {
     namespace = "com.grebnev.feature.addmarker"
-    compileSdk = 35
+    compileSdk =
+        libs.versions.androidCompileSdk
+            .get()
+            .toInt()
 
     defaultConfig {
-        minSdk = 26
+        minSdk =
+            libs.versions.androidMinSdk
+                .get()
+                .toInt()
     }
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
+        sourceCompatibility = JavaVersion.toVersion(libs.versions.jvmTarget.get())
+        targetCompatibility = JavaVersion.toVersion(libs.versions.jvmTarget.get())
     }
     kotlinOptions {
-        jvmTarget = "17"
+        jvmTarget = libs.versions.jvmTarget.get()
     }
     buildFeatures {
         compose = true
@@ -31,12 +37,18 @@ dependencies {
     implementation(project(":core-database"))
     implementation(project(":core-domain"))
     implementation(project(":core-map"))
+    implementation(project(":core-ui"))
+    implementation(project(":core-permissions"))
+    implementation(project(":feature-imagepicker"))
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity.compose)
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.bundles.ui)
+    implementation(libs.androidx.compose.icons)
+    implementation(libs.coil)
     implementation(libs.yandex.mapkit.sdk)
+    implementation(libs.accompanist.permissions)
     implementation(libs.bundles.mvikotlin)
     implementation(libs.bundles.decompose)
     implementation(libs.hilt.android)

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="media_images_access">media images access</string>
+    <string name="external_storage_access">external storage access</string>
+    <string name="confirm">Confirm</string>
+    <string name="select_images">Select images</string>
+    <string name="cancel">Cancel</string>
+</resources>

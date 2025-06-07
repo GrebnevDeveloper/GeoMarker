@@ -7,4 +7,6 @@
     <string name="name_required">Название обязательно</string>
     <string name="location">Местоположение</string>
     <string name="save">Сохранить</string>
+    <string name="add_images">Добавить изображения</string>
+    <string name="images">Изображения</string>
 </resources>

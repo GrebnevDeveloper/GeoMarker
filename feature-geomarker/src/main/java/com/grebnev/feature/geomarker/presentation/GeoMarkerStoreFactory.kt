@@ -6,36 +6,15 @@ import com.arkivanov.mvikotlin.core.store.StoreFactory
 import com.arkivanov.mvikotlin.extensions.coroutines.CoroutineBootstrapper
 import com.arkivanov.mvikotlin.extensions.coroutines.CoroutineExecutor
 import com.grebnev.core.domain.entity.GeoMarker
+import com.grebnev.feature.geomarker.api.GeoMarkerStore
+import com.grebnev.feature.geomarker.api.GeoMarkerStore.Intent
+import com.grebnev.feature.geomarker.api.GeoMarkerStore.Label
+import com.grebnev.feature.geomarker.api.GeoMarkerStore.State
 import com.grebnev.feature.geomarker.domain.GetGeoMarkersUseCase
-import com.grebnev.feature.geomarker.presentation.GeoMarkerStore.Intent
-import com.grebnev.feature.geomarker.presentation.GeoMarkerStore.Label
-import com.grebnev.feature.geomarker.presentation.GeoMarkerStore.State
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-interface GeoMarkerStore : Store<Intent, State, Label> {
-    sealed interface Intent {
-        data class SelectMarker(
-            val markerId: Long?,
-        ) : Intent
-
-        data object AddMarkerClicked : Intent
-    }
-
-    data class State(
-        val markersFlow: Flow<List<GeoMarker>> = emptyFlow(),
-        val selectedMarkerId: StateFlow<Long?> = MutableStateFlow(null),
-    )
-
-    sealed interface Label {
-        data object AddMarkerClicked : Label
-    }
-}
-
-class GeoMarkersStoreFactory
+class GeoMarkerStoreFactory
     @Inject
     constructor(
         private val storeFactory: StoreFactory,
@@ -47,7 +26,11 @@ class GeoMarkersStoreFactory
                 Store<Intent, State, Label> by storeFactory
                     .create(
                         name = "GeoMarkersStore",
-                        initialState = State(),
+                        initialState =
+                            State(
+                                markers = emptyList(),
+                                selectedMarkerId = null,
+                            ),
                         bootstrapper = BootstrapperImpl(),
                         executorFactory = ::ExecutorImpl,
                         reducer = ReducerImpl,
@@ -55,13 +38,13 @@ class GeoMarkersStoreFactory
 
         private sealed interface Action {
             data class MarkersLoaded(
-                val markersFlow: Flow<List<GeoMarker>>,
+                val markers: List<GeoMarker>,
             ) : Action
         }
 
         private sealed interface Msg {
             data class MarkersLoaded(
-                val markersFlow: Flow<List<GeoMarker>>,
+                val markers: List<GeoMarker>,
             ) : Msg
 
             data class MarkerSelected(
@@ -71,8 +54,11 @@ class GeoMarkersStoreFactory
 
         private inner class BootstrapperImpl : CoroutineBootstrapper<Action>() {
             override fun invoke() {
-                val markersFlow = getGeoMarkersUseCase()
-                dispatch(Action.MarkersLoaded(markersFlow))
+                scope.launch {
+                    getGeoMarkersUseCase().collect { markers ->
+                        dispatch(Action.MarkersLoaded(markers))
+                    }
+                }
             }
         }
 
@@ -92,7 +78,7 @@ class GeoMarkersStoreFactory
             override fun executeAction(action: Action) {
                 when (action) {
                     is Action.MarkersLoaded -> {
-                        dispatch(Msg.MarkersLoaded(action.markersFlow))
+                        dispatch(Msg.MarkersLoaded(action.markers))
                     }
                 }
             }
@@ -102,13 +88,10 @@ class GeoMarkersStoreFactory
             override fun State.reduce(msg: Msg): State =
                 when (msg) {
                     is Msg.MarkersLoaded ->
-                        copy(
-                            markersFlow = msg.markersFlow,
-                        )
+                        copy(markers = msg.markers)
 
                     is Msg.MarkerSelected -> {
-                        (selectedMarkerId as MutableStateFlow).value = msg.markerId
-                        this
+                        copy(selectedMarkerId = msg.markerId)
                     }
                 }
         }

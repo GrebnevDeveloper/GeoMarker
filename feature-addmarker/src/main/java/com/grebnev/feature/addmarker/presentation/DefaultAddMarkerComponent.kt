@@ -10,6 +10,9 @@ import com.arkivanov.mvikotlin.extensions.coroutines.stateFlow
 import com.grebnev.core.extensions.componentScope
 import com.grebnev.core.map.presentation.DefaultMapComponentProvider
 import com.grebnev.core.map.presentation.MapComponent
+import com.grebnev.feature.imagepicker.presentation.DefaultImagePickerComponent
+import com.grebnev.feature.imagepicker.presentation.ImagePickerComponent
+import com.grebnev.feature.imagepicker.presentation.ImagePickerStore
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
@@ -22,6 +25,7 @@ class DefaultAddMarkerComponent
     constructor(
         private val addMarkerStoreFactory: AddMarkerStoreFactory,
         private val mapComponentProvider: DefaultMapComponentProvider,
+        private val imagePickerComponentFactory: DefaultImagePickerComponent.Factory,
         @Assisted private val onBackClicked: () -> Unit,
         @Assisted componentContext: ComponentContext,
     ) : AddMarkerComponent,
@@ -40,8 +44,13 @@ class DefaultAddMarkerComponent
             componentScope().launch {
                 store.labels.collect { label ->
                     when (label) {
-                        AddMarkerStore.Label.MarkerAdded -> onBackClicked()
+                        AddMarkerStore.Label.SubmitClicked -> onBackClicked()
                         AddMarkerStore.Label.BackClicked -> onBackClicked()
+                        is AddMarkerStore.Label.AddImagesClicked -> {
+                            imagePickerComponent.onIntent(
+                                ImagePickerStore.Intent.SyncSelectedImages(label.currentImagesUri),
+                            )
+                        }
                     }
                 }
             }
@@ -53,6 +62,17 @@ class DefaultAddMarkerComponent
                     store.accept(AddMarkerStore.Intent.CameraPositionChanged(position))
                 },
                 componentContext = childContext("MapComponent"),
+            )
+
+        override val imagePickerComponent: ImagePickerComponent =
+            imagePickerComponentFactory.create(
+                onImagesSelectedUri = { imagesUri ->
+                    store.accept(AddMarkerStore.Intent.ConfirmImagesSelection(imagesUri))
+                },
+                onSelectionCanceled = {
+                    store.accept(AddMarkerStore.Intent.CancelImagesSelection)
+                },
+                componentContext = childContext("ImagePickerComponent"),
             )
 
         override fun onIntent(intent: AddMarkerStore.Intent) {

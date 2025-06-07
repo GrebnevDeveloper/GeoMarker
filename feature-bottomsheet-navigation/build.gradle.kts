@@ -9,18 +9,24 @@ plugins {
 
 android {
     namespace = "com.grebnev.feature.bottomsheet.navigation"
-    compileSdk = 35
+    compileSdk =
+        libs.versions.androidCompileSdk
+            .get()
+            .toInt()
 
     defaultConfig {
-        minSdk = 26
+        minSdk =
+            libs.versions.androidMinSdk
+                .get()
+                .toInt()
     }
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
+        sourceCompatibility = JavaVersion.toVersion(libs.versions.jvmTarget.get())
+        targetCompatibility = JavaVersion.toVersion(libs.versions.jvmTarget.get())
     }
     kotlinOptions {
-        jvmTarget = "17"
+        jvmTarget = libs.versions.jvmTarget.get()
     }
 
     buildFeatures {
@@ -33,12 +39,14 @@ dependencies {
     implementation(project(":core-extensions"))
     implementation(project(":feature-listmarkers"))
     implementation(project(":feature-detailsmarker"))
+    implementation(project(":feature-geomarker-api"))
 
     implementation(libs.androidx.core.ktx)
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.activity.compose)
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.bundles.ui)
+    implementation(libs.bundles.mvikotlin)
     implementation(libs.bundles.decompose)
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
