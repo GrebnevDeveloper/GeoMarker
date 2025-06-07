@@ -7,4 +7,6 @@
     <string name="name_required">The name is required</string>
     <string name="location">Location</string>
     <string name="save">Save</string>
+    <string name="add_images">Add Images</string>
+    <string name="images">Images</string>
 </resources>

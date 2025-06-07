@@ -1,6 +1,7 @@
 package com.grebnev.feature.addmarker.presentation
 
 import android.Manifest
+import android.content.Context
 import android.net.Uri
 import android.os.Build
 import androidx.compose.foundation.background
@@ -14,7 +15,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -31,6 +31,8 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Photo
 import androidx.compose.material3.BottomSheetScaffold
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -45,6 +47,7 @@ import androidx.compose.material3.rememberStandardBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -96,9 +99,6 @@ fun AddMarkerContent(
         }
     }
 
-    val configuration = LocalConfiguration.current
-    val screenHeight = configuration.screenHeightDp.dp
-
     BottomSheetScaffold(
         modifier = modifier.fillMaxSize(),
         scaffoldState = sheetState,
@@ -121,107 +121,78 @@ fun AddMarkerContent(
                         .verticalScroll(scrollState),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
-                OutlinedTextField(
-                    value = state.title,
-                    onValueChange = { title: String ->
-                        component.onIntent(AddMarkerStore.Intent.TitleChanged(title))
-                    },
-                    label = { Text(stringResource(R.string.marker_name)) },
-                    isError =
+                TitleInputSection(
+                    title = state.title,
+                    validationError =
                         state.validationErrors.contains(
                             AddMarkerStore.State.ValidationError.TITLE_EMPTY,
                         ),
-                    modifier = Modifier.fillMaxWidth(),
+                    onTitleChanged = { title ->
+                        component.onIntent(AddMarkerStore.Intent.TitleChanged(title))
+                    },
                 )
 
-                if (state.validationErrors.contains(AddMarkerStore.State.ValidationError.TITLE_EMPTY)) {
-                    Text(
-                        text = stringResource(R.string.name_required),
-                        color = MaterialTheme.colorScheme.error,
-                        style = MaterialTheme.typography.labelSmall,
-                    )
-                }
-
-                OutlinedTextField(
-                    value = state.description,
-                    onValueChange = { description: String ->
-                        component.onIntent(AddMarkerStore.Intent.DescriptionChanged(description))
-                    },
-                    label = { Text(stringResource(R.string.marker_description)) },
-                    isError =
+                DescriptionInputSection(
+                    description = state.description,
+                    validationError =
                         state.validationErrors.contains(
                             AddMarkerStore.State.ValidationError.DESCRIPTION_TOO_LONG,
                         ),
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .heightIn(min = 100.dp),
-                    maxLines = 4,
+                    onDescriptionChanged = { description ->
+                        component.onIntent(AddMarkerStore.Intent.DescriptionChanged(description))
+                    },
                 )
 
-                if (state.validationErrors.contains(
-                        AddMarkerStore.State.ValidationError.DESCRIPTION_TOO_LONG,
-                    )
-                ) {
-                    Text(
-                        text = stringResource(R.string.description_too_long),
-                        color = MaterialTheme.colorScheme.error,
-                        style = MaterialTheme.typography.labelSmall,
-                    )
-                }
-
-                Button(
-                    onClick = {
+                ImagesSection(
+                    selectedImages = state.selectedImages,
+                    onAddImagesClick = {
                         component.onIntent(
                             AddMarkerStore.Intent.AddImagesClicked(state.selectedImages),
                         )
                     },
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Icon(imageVector = Icons.Default.Photo, contentDescription = null)
-                    Spacer(Modifier.width(8.dp))
-                    Text("Add Images")
-                }
-
-                if (state.selectedImages.isNotEmpty()) {
-                    LazyRow {
-                        items(state.selectedImages) { imageUri ->
-                            ImageThumbnailItem(
-                                imageUri = imageUri,
-                                onRemoveClick = {
-                                    component.onIntent(AddMarkerStore.Intent.RemoveImage(imageUri))
-                                },
-                            )
-                        }
-                    }
-                }
-
-                Text(
-                    text = stringResource(R.string.location),
-                    style = MaterialTheme.typography.titleLarge,
+                    onRemoveImage = { imageUri ->
+                        component.onIntent(AddMarkerStore.Intent.RemoveImage(imageUri))
+                    },
                 )
 
-                MapContent(
-                    component = component.mapComponent,
-                    modifier =
-                        Modifier
-                            .height(300.dp)
-                            .pointerInput(Unit) {
-                                detectTransformGestures(
-                                    onGesture = { centroid, pan, zoom, rotation ->
-                                        component.mapComponent.onIntent(
-                                            MapStore.Intent.UpdateCameraPosition(
-                                                state.location.calculateNewPosition(
-                                                    panOffset = pan,
-                                                    zoomChange = zoom - 1f,
-                                                ),
-                                            ),
+                Card(
+                    modifier = modifier.fillMaxWidth(),
+                    shape = MaterialTheme.shapes.medium,
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                ) {
+                    Column(
+                        modifier = Modifier.padding(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        Text(
+                            text = stringResource(R.string.location),
+                            style = MaterialTheme.typography.titleLarge,
+                        )
+
+                        MapContent(
+                            component = component.mapComponent,
+                            modifier =
+                                Modifier
+                                    .height(300.dp)
+                                    .clip(MaterialTheme.shapes.small)
+                                    .pointerInput(Unit) {
+                                        detectTransformGestures(
+                                            onGesture = { centroid, pan, zoom, rotation ->
+                                                component.mapComponent.onIntent(
+                                                    MapStore.Intent.UpdateCameraPosition(
+                                                        state.location.calculateNewPosition(
+                                                            panOffset = pan,
+                                                            zoomChange = zoom - 1f,
+                                                        ),
+                                                    ),
+                                                )
+                                            },
                                         )
                                     },
-                                )
-                            },
-                    showPositionMarker = true,
-                )
+                            showPositionMarker = true,
+                        )
+                    }
+                }
 
                 Spacer(modifier = Modifier.weight(1f))
 
@@ -238,38 +209,147 @@ fun AddMarkerContent(
             }
         },
         sheetContent = {
-            Box(
+            ImagePickerSheetContent(
+                component = component,
+                context = context,
+            )
+        },
+    )
+}
+
+@Composable
+private fun TitleInputSection(
+    title: String,
+    validationError: Boolean,
+    onTitleChanged: (String) -> Unit,
+) {
+    OutlinedTextField(
+        value = title,
+        onValueChange = onTitleChanged,
+        label = { Text(stringResource(R.string.marker_name)) },
+        isError = validationError,
+        modifier = Modifier.fillMaxWidth(),
+    )
+
+    if (validationError) {
+        Text(
+            text = stringResource(R.string.name_required),
+            color = MaterialTheme.colorScheme.error,
+            style = MaterialTheme.typography.labelSmall,
+        )
+    }
+}
+
+@Composable
+private fun DescriptionInputSection(
+    description: String,
+    validationError: Boolean,
+    onDescriptionChanged: (String) -> Unit,
+) {
+    OutlinedTextField(
+        value = description,
+        onValueChange = onDescriptionChanged,
+        label = { Text(stringResource(R.string.marker_description)) },
+        isError = validationError,
+        modifier = Modifier.fillMaxWidth(),
+    )
+
+    if (validationError) {
+        Text(
+            text = stringResource(R.string.description_too_long),
+            color = MaterialTheme.colorScheme.error,
+            style = MaterialTheme.typography.labelSmall,
+        )
+    }
+}
+
+@Composable
+private fun LocationSection(
+    component: AddMarkerComponent,
+    state: AddMarkerStore.State,
+    modifier: Modifier = Modifier,
+) {
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.medium,
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+    ) {
+        Column(
+            modifier = modifier.padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Text(
+                text = stringResource(R.string.location),
+                style = MaterialTheme.typography.titleLarge,
+            )
+            MapContent(
+                component = component.mapComponent,
                 modifier =
-                    Modifier
-                        .height(screenHeight / 2)
-                        .fillMaxWidth(),
+                    modifier
+                        .fillMaxSize()
+                        .height(300.dp)
+                        .pointerInput(Unit) {
+                            detectTransformGestures(
+                                onGesture = { centroid, pan, zoom, rotation ->
+                                    component.mapComponent.onIntent(
+                                        MapStore.Intent.UpdateCameraPosition(
+                                            state.location.calculateNewPosition(
+                                                panOffset = pan,
+                                                zoomChange = zoom - 1f,
+                                            ),
+                                        ),
+                                    )
+                                },
+                            )
+                        },
+                showPositionMarker = true,
+            )
+        }
+    }
+}
+
+@Composable
+private fun ImagesSection(
+    selectedImages: List<Uri>,
+    onAddImagesClick: () -> Unit,
+    onRemoveImage: (Uri) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.medium,
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+    ) {
+        Column(
+            modifier = Modifier.padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Text(
+                text = stringResource(R.string.images),
+                style = MaterialTheme.typography.titleLarge,
+            )
+
+            Button(
+                onClick = onAddImagesClick,
+                modifier = Modifier.fillMaxWidth(),
             ) {
-                PermissionRequired(
-                    context = context,
-                    permission =
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                            Manifest.permission.READ_MEDIA_IMAGES
-                        } else {
-                            Manifest.permission.READ_EXTERNAL_STORAGE
-                        },
-                    permissionDescription =
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                            stringResource(com.grebnev.feature.imagepicker.R.string.media_images_access)
-                        } else {
-                            stringResource(com.grebnev.feature.imagepicker.R.string.external_storage_access)
-                        },
-                ) { permissionState ->
-                    if (permissionState.status.isGranted) {
-                        ImagePickerContent(
-                            component = component.imagePickerComponent,
+                Icon(imageVector = Icons.Default.Photo, contentDescription = null)
+                Spacer(Modifier.width(8.dp))
+                Text(stringResource(R.string.add_images))
+            }
+
+            if (selectedImages.isNotEmpty()) {
+                LazyRow {
+                    items(selectedImages) { imageUri ->
+                        ImageThumbnailItem(
+                            imageUri = imageUri,
+                            onRemoveClick = { onRemoveImage(imageUri) },
                         )
-                    } else {
-                        component.onIntent(AddMarkerStore.Intent.CancelImagesSelection)
                     }
                 }
             }
-        },
-    )
+        }
+    }
 }
 
 @Composable
@@ -318,6 +398,48 @@ private fun ImageThumbnailItem(
                 tint = MaterialTheme.colorScheme.onErrorContainer,
                 modifier = Modifier.size(12.dp),
             )
+        }
+    }
+}
+
+@OptIn(ExperimentalPermissionsApi::class)
+@Composable
+private fun ImagePickerSheetContent(
+    component: AddMarkerComponent,
+    context: Context,
+    modifier: Modifier = Modifier,
+) {
+    val configuration = LocalConfiguration.current
+    val screenHeight = configuration.screenHeightDp.dp
+
+    Box(
+        modifier =
+            modifier
+                .height(screenHeight / 2)
+                .fillMaxWidth(),
+    ) {
+        PermissionRequired(
+            context = context,
+            permission =
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    Manifest.permission.READ_MEDIA_IMAGES
+                } else {
+                    Manifest.permission.READ_EXTERNAL_STORAGE
+                },
+            permissionDescription =
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    stringResource(com.grebnev.feature.imagepicker.R.string.media_images_access)
+                } else {
+                    stringResource(com.grebnev.feature.imagepicker.R.string.external_storage_access)
+                },
+        ) { permissionState ->
+            if (permissionState.status.isGranted) {
+                ImagePickerContent(
+                    component = component.imagePickerComponent,
+                )
+            } else {
+                component.onIntent(AddMarkerStore.Intent.CancelImagesSelection)
+            }
         }
     }
 }

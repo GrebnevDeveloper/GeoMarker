@@ -14,7 +14,7 @@ import com.grebnev.feature.geomarker.domain.GetGeoMarkersUseCase
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-class GeoMarkersStoreFactory
+class GeoMarkerStoreFactory
     @Inject
     constructor(
         private val storeFactory: StoreFactory,

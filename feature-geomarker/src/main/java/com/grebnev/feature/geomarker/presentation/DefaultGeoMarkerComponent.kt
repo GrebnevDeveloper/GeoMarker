@@ -23,14 +23,14 @@ import kotlinx.coroutines.launch
 class DefaultGeoMarkerComponent
     @AssistedInject
     constructor(
-        private val geoMarkersStoreFactory: GeoMarkersStoreFactory,
+        private val geoMarkerStoreFactory: GeoMarkerStoreFactory,
         private val mapComponentProvider: DefaultMapComponentProvider,
         private val bottomSheetComponentFactory: DefaultBottomSheetComponent.Factory,
         @Assisted private val onAddMarkerClicked: () -> Unit,
         @Assisted componentContext: ComponentContext,
     ) : GeoMarkerComponent,
         ComponentContext by componentContext {
-        private val store = instanceKeeper.getStore { geoMarkersStoreFactory.create() }
+        private val store = instanceKeeper.getStore { geoMarkerStoreFactory.create() }
 
         private val _model = MutableValue(store.stateFlow.value)
         override val model: Value<GeoMarkerStore.State> = _model
