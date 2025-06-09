@@ -60,6 +60,10 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import coil3.compose.rememberAsyncImagePainter
+import coil3.request.ImageRequest
+import coil3.request.crossfade
+import coil3.size.Scale
+import coil3.size.Size
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
@@ -114,7 +118,7 @@ fun AddMarkerContent(
                     modifier
                         .padding(
                             top = padding.calculateTopPadding(),
-                            bottom = 10.dp,
+                            bottom = padding.calculateBottomPadding(),
                             start = 5.dp,
                             end = 5.dp,
                         ).fillMaxSize()
@@ -358,6 +362,8 @@ private fun ImageThumbnailItem(
     onRemoveClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val context = LocalContext.current
+
     Box(
         modifier =
             modifier
@@ -365,7 +371,14 @@ private fun ImageThumbnailItem(
                 .size(96.dp),
     ) {
         AsyncImage(
-            model = imageUri,
+            model =
+                ImageRequest
+                    .Builder(context)
+                    .data(imageUri)
+                    .size(Size(200, 200))
+                    .scale(Scale.FILL)
+                    .crossfade(true)
+                    .build(),
             contentDescription = null,
             contentScale = ContentScale.Crop,
             modifier =

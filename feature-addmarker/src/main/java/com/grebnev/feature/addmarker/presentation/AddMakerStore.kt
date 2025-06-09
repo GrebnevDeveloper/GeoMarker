@@ -195,6 +195,7 @@ class AddMarkerStoreFactory
                             description = state.description,
                             latitude = state.location.target.latitude,
                             longitude = state.location.target.longitude,
+                            imagesUri = state.selectedImages.map { it.toString() },
                         ),
                     )
                     publish(Label.SubmitClicked)

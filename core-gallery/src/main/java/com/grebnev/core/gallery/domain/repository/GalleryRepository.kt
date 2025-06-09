@@ -6,4 +6,6 @@ interface GalleryRepository {
     suspend fun getGalleryImagesUri(): List<Uri>
 
     suspend fun getPhotoUri(): Uri?
+
+    suspend fun isUriValid(imageUri: String): Boolean
 }

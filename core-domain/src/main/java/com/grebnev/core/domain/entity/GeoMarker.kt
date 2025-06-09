@@ -9,4 +9,5 @@ data class GeoMarker(
     val description: String,
     val latitude: Double,
     val longitude: Double,
+    val imagesUri: List<String>,
 )

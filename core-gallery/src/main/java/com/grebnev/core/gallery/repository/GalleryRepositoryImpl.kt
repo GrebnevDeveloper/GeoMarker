@@ -6,10 +6,12 @@ import android.net.Uri
 import android.os.Environment
 import android.provider.MediaStore
 import androidx.core.content.FileProvider
+import androidx.core.net.toUri
 import com.grebnev.core.gallery.domain.repository.GalleryRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
+import java.io.FileNotFoundException
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -95,5 +97,64 @@ class GalleryRepositoryImpl
                 ".jpg",
                 storageDir,
             )
+        }
+
+        override suspend fun isUriValid(imageUri: String): Boolean =
+            withContext(Dispatchers.IO) {
+                try {
+                    val uri = imageUri.toUri()
+
+                    if (uri.authority == MediaStore.AUTHORITY) {
+                        return@withContext checkMediaStoreUri(uri)
+                    }
+
+                    if (uri.authority == "${context.packageName}.fileprovider") {
+                        return@withContext checkFileProviderUri(uri)
+                    }
+
+                    return@withContext checkFileUri(uri)
+                } catch (e: Exception) {
+                    false
+                }
+            }
+
+        private fun checkMediaStoreUri(uri: Uri): Boolean {
+            val projection = arrayOf(MediaStore.Images.Media._ID)
+            return context.contentResolver
+                .query(
+                    uri,
+                    projection,
+                    null,
+                    null,
+                    null,
+                )?.use { cursor ->
+                    cursor.moveToFirst()
+                } == true
+        }
+
+        private fun checkFileProviderUri(uri: Uri): Boolean =
+            try {
+                context.contentResolver.openInputStream(uri)?.use {
+                    true
+                } == true
+            } catch (e: FileNotFoundException) {
+                false
+            }
+
+        private fun checkFileUri(uri: Uri): Boolean {
+            return when (uri.scheme) {
+                "file" -> File(uri.path ?: return false).exists()
+                "content" -> {
+                    context.contentResolver
+                        .query(
+                            uri,
+                            null,
+                            null,
+                            null,
+                            null,
+                        )?.use { true } == true
+                }
+                else -> false
+            }
         }
     }
