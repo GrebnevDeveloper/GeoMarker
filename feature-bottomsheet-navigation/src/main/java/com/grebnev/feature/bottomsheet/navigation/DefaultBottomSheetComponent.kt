@@ -11,6 +11,7 @@ import com.arkivanov.decompose.router.stack.replaceCurrent
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.essenty.backhandler.BackCallback
 import com.arkivanov.mvikotlin.extensions.coroutines.stateFlow
+import com.grebnev.core.domain.entity.GeoMarker
 import com.grebnev.core.extensions.componentScope
 import com.grebnev.feature.bottomsheet.navigation.BottomSheetComponent.Child.DetailsMarker
 import com.grebnev.feature.bottomsheet.navigation.BottomSheetComponent.Child.ListMarkers
@@ -30,7 +31,7 @@ class DefaultBottomSheetComponent
     constructor(
         private val listMarkersComponentFactory: DefaultListMarkersComponent.Factory,
         private val detailsMarkerComponentFactory: DefaultDetailsMarkerComponent.Factory,
-        @Assisted private val onMarkerSelected: (Long?) -> Unit,
+        @Assisted private val onMarkerSelected: (GeoMarker?) -> Unit,
         @Assisted private val geoMarkerStore: GeoMarkerStore,
         @Assisted component: ComponentContext,
     ) : BottomSheetComponent,
@@ -53,7 +54,7 @@ class DefaultBottomSheetComponent
         init {
             scope.launch {
                 geoMarkerStore.stateFlow.collect { state ->
-                    handleMarkerSelection(state.selectedMarkerId)
+                    handleMarkerSelection(state.selectedMarker)
                 }
             }
             scope.launch {
@@ -86,24 +87,24 @@ class DefaultBottomSheetComponent
             }
         }
 
-        private fun handleMarkerSelection(markerId: Long?) {
+        private fun handleMarkerSelection(marker: GeoMarker?) {
             val currentStack = stack.value
             val currentTop = currentStack.active.configuration
 
             when {
-                markerId == null -> {
+                marker == null -> {
                     if (currentTop is Config.DetailsMarker) {
                         navigation.pop()
                     }
                 }
-                currentTop is Config.DetailsMarker && currentTop.markerId == markerId -> {
+                currentTop is Config.DetailsMarker && currentTop.marker == marker -> {
                     return
                 }
                 currentTop is Config.DetailsMarker -> {
-                    navigation.replaceCurrent(Config.DetailsMarker(markerId))
+                    navigation.replaceCurrent(Config.DetailsMarker(marker))
                 }
                 else -> {
-                    navigation.push(Config.DetailsMarker(markerId))
+                    navigation.push(Config.DetailsMarker(marker))
                 }
             }
         }
@@ -118,7 +119,7 @@ class DefaultBottomSheetComponent
                         listMarkersComponentFactory.create(
                             geoMarkerStore = geoMarkerStore,
                             onMarkerSelected = { marker ->
-                                onMarkerSelected(marker.id)
+                                onMarkerSelected(marker)
                             },
                             component = componentContext,
                         )
@@ -128,7 +129,7 @@ class DefaultBottomSheetComponent
                 is Config.DetailsMarker -> {
                     val component =
                         detailsMarkerComponentFactory.create(
-                            markerId = config.markerId,
+                            marker = config.marker,
                             onBackClicked = {
                                 onMarkerSelected(null)
                             },
@@ -145,7 +146,7 @@ class DefaultBottomSheetComponent
 
             @Serializable
             data class DetailsMarker(
-                val markerId: Long,
+                val marker: GeoMarker,
             ) : Config
         }
 
@@ -153,7 +154,7 @@ class DefaultBottomSheetComponent
         interface Factory {
             fun create(
                 @Assisted geoMarkerStore: GeoMarkerStore,
-                @Assisted onMarkerSelected: (Long?) -> Unit,
+                @Assisted onMarkerSelected: (GeoMarker?) -> Unit,
                 @Assisted componentContext: ComponentContext,
             ): DefaultBottomSheetComponent
         }

@@ -23,6 +23,7 @@ import androidx.compose.material3.carousel.HorizontalMultiBrowseCarousel
 import androidx.compose.material3.carousel.rememberCarouselState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -48,33 +49,38 @@ fun DetailsMarkerContent(
 ) {
     val state by component.model.subscribeAsState()
 
-    Column {
-        val title = state.marker?.title.orEmpty()
+    Column(
+        modifier = Modifier.fillMaxSize(),
+    ) {
+        val title = state.marker.title
         if (title.isNotEmpty()) {
             TitleSection(
                 title = title,
                 onClick = { component.onIntent(DetailsMarkerStore.Intent.BackClicked) },
+                modifier = Modifier.padding(horizontal = 16.dp),
             )
         }
-        LazyColumn(
-            modifier =
-                modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 16.dp)
-                    .padding(bottom = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            val imagesUri = state.marker?.imagesUri.orEmpty()
-            if (imagesUri.isNotEmpty()) {
-                item {
-                    ImagesSection(imagesUri)
+        key(state.marker.hashCode()) {
+            LazyColumn(
+                modifier =
+                    modifier
+                        .weight(1f)
+                        .padding(horizontal = 16.dp)
+                        .padding(bottom = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                val imagesUri = state.marker.imagesUri
+                if (imagesUri.isNotEmpty()) {
+                    item {
+                        ImagesSection(imagesUri)
+                    }
                 }
-            }
 
-            val description = state.marker?.description.orEmpty()
-            if (description.isNotEmpty()) {
-                item {
-                    DescriptionSection(description)
+                val description = state.marker.description
+                if (description.isNotEmpty()) {
+                    item {
+                        DescriptionSection(description)
+                    }
                 }
             }
         }
@@ -85,14 +91,15 @@ fun DetailsMarkerContent(
 private fun TitleSection(
     title: String,
     onClick: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.Start,
         modifier =
-            Modifier
+            modifier
                 .fillMaxWidth()
-                .padding(start = 16.dp, bottom = 8.dp),
+                .padding(bottom = 8.dp),
     ) {
         IconButton(onClick = onClick) {
             Icon(

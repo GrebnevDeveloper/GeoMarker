@@ -6,6 +6,7 @@ import com.arkivanov.decompose.value.Value
 import com.arkivanov.mvikotlin.core.instancekeeper.getStore
 import com.arkivanov.mvikotlin.extensions.coroutines.labels
 import com.arkivanov.mvikotlin.extensions.coroutines.stateFlow
+import com.grebnev.core.domain.entity.GeoMarker
 import com.grebnev.core.extensions.componentScope
 import com.grebnev.feature.geomarker.api.GeoMarkerStore
 import com.yandex.mapkit.map.CameraPosition
@@ -22,7 +23,7 @@ class DefaultMapComponent
     constructor(
         private val mapStoreFactory: MapStoreFactory,
         @Assisted geoMarkerStore: GeoMarkerStore?,
-        @Assisted private val onMarkerSelected: (Long?) -> Unit,
+        @Assisted private val onMarkerSelected: (GeoMarker?) -> Unit,
         @Assisted private val cameraPositionChanged: (CameraPosition) -> Unit,
         @Assisted componentContext: ComponentContext,
     ) : MapComponent,
@@ -49,7 +50,7 @@ class DefaultMapComponent
                 store.labels.collect { label ->
                     when (label) {
                         is MapStore.Label.MarkerSelected ->
-                            onMarkerSelected(label.markerId)
+                            onMarkerSelected(label.marker)
 
                         is MapStore.Label.CameraPositionChanged ->
                             cameraPositionChanged(label.position)
@@ -66,7 +67,7 @@ class DefaultMapComponent
         interface InternalFactory {
             fun create(
                 @Assisted geoMarkerStore: GeoMarkerStore?,
-                @Assisted onMarkerSelected: (Long?) -> Unit,
+                @Assisted onMarkerSelected: (GeoMarker?) -> Unit,
                 @Assisted cameraPositionChanged: (CameraPosition) -> Unit,
                 @Assisted componentContext: ComponentContext,
             ): DefaultMapComponent
@@ -80,7 +81,7 @@ class DefaultMapComponentProvider
     ) {
         fun createMapMarkers(
             geoMarkerStore: GeoMarkerStore,
-            onMarkerSelected: (Long?) -> Unit,
+            onMarkerSelected: (GeoMarker?) -> Unit,
             componentContext: ComponentContext,
         ): DefaultMapComponent =
             factory.create(

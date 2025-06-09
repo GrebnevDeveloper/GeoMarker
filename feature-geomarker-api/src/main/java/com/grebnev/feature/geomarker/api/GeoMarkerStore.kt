@@ -9,7 +9,7 @@ import com.grebnev.feature.geomarker.api.GeoMarkerStore.State
 interface GeoMarkerStore : Store<Intent, State, Label> {
     sealed interface Intent {
         data class SelectMarker(
-            val markerId: Long?,
+            val marker: GeoMarker?,
         ) : Intent
 
         data object AddMarkerClicked : Intent
@@ -17,7 +17,7 @@ interface GeoMarkerStore : Store<Intent, State, Label> {
 
     data class State(
         val markers: List<GeoMarker>,
-        val selectedMarkerId: Long?,
+        val selectedMarker: GeoMarker?,
     )
 
     sealed interface Label {
