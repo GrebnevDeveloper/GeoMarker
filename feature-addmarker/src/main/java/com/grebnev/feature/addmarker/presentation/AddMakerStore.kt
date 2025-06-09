@@ -206,7 +206,9 @@ class AddMarkerStoreFactory
         private fun validate(state: State): List<State.ValidationError> {
             val errors = mutableListOf<State.ValidationError>()
             if (state.title.isBlank()) errors.add(State.ValidationError.TITLE_EMPTY)
-            if (state.description.length > 200) errors.add(State.ValidationError.DESCRIPTION_TOO_LONG)
+            if (state.description.length > MAX_LENGTH_DESCRIPTION) {
+                errors.add(State.ValidationError.DESCRIPTION_TOO_LONG)
+            }
             return errors
         }
 
@@ -221,5 +223,9 @@ class AddMarkerStoreFactory
                     is Msg.ShowImagePicker -> copy(showImagePicker = msg.isShow)
                     is Msg.ImageRemoved -> copy(selectedImages = selectedImages - msg.imageUri)
                 }
+        }
+
+        companion object {
+            private const val MAX_LENGTH_DESCRIPTION = 200
         }
     }

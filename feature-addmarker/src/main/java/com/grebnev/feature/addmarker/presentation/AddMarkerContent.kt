@@ -268,51 +268,6 @@ private fun DescriptionInputSection(
 }
 
 @Composable
-private fun LocationSection(
-    component: AddMarkerComponent,
-    state: AddMarkerStore.State,
-    modifier: Modifier = Modifier,
-) {
-    Card(
-        modifier = modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.medium,
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-    ) {
-        Column(
-            modifier = modifier.padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            Text(
-                text = stringResource(R.string.location),
-                style = MaterialTheme.typography.titleLarge,
-            )
-            MapContent(
-                component = component.mapComponent,
-                modifier =
-                    modifier
-                        .fillMaxSize()
-                        .height(300.dp)
-                        .pointerInput(Unit) {
-                            detectTransformGestures(
-                                onGesture = { centroid, pan, zoom, rotation ->
-                                    component.mapComponent.onIntent(
-                                        MapStore.Intent.UpdateCameraPosition(
-                                            state.location.calculateNewPosition(
-                                                panOffset = pan,
-                                                zoomChange = zoom - 1f,
-                                            ),
-                                        ),
-                                    )
-                                },
-                            )
-                        },
-                showPositionMarker = true,
-            )
-        }
-    }
-}
-
-@Composable
 private fun ImagesSection(
     selectedImages: List<Uri>,
     onAddImagesClick: () -> Unit,
