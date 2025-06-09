@@ -19,7 +19,7 @@ interface DetailsMarkerStore : Store<Intent, State, Label> {
     }
 
     data class State(
-        val marker: GeoMarker? = null,
+        val marker: GeoMarker,
     )
 
     sealed interface Label {
@@ -33,14 +33,14 @@ class DetailsMarkerStoreFactory
         private val storeFactory: StoreFactory,
         private val getDetailsMarkerUseCase: GetDetailsMarkerUseCase,
     ) {
-        fun create(markerId: Long): DetailsMarkerStore =
+        fun create(marker: GeoMarker): DetailsMarkerStore =
             object :
                 DetailsMarkerStore,
                 Store<Intent, State, Label> by storeFactory
                     .create(
                         name = "DetailsMarkerStore",
-                        initialState = State(),
-                        bootstrapper = BootstrapperImpl(markerId),
+                        initialState = State(marker),
+                        bootstrapper = BootstrapperImpl(marker.id),
                         executorFactory = ::ExecutorImpl,
                         reducer = ReducerImpl,
                     ) {}

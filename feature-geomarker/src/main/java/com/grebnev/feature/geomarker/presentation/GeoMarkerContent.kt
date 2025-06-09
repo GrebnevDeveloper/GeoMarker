@@ -40,8 +40,8 @@ fun GeoMarkerContent(component: GeoMarkerComponent) {
         )
     val store by component.model.subscribeAsState()
 
-    LaunchedEffect(store.selectedMarkerId) {
-        if (store.selectedMarkerId == null) {
+    LaunchedEffect(store.selectedMarker) {
+        if (store.selectedMarker == null) {
             sheetState.bottomSheetState.partialExpand()
         } else {
             sheetState.bottomSheetState.expand()

@@ -55,14 +55,14 @@ class DefaultGeoMarkerComponent
         override val mapComponent: MapComponent =
             mapComponentProvider.createMapMarkers(
                 geoMarkerStore = store,
-                onMarkerSelected = { markerId -> store.accept(GeoMarkerStore.Intent.SelectMarker(markerId)) },
+                onMarkerSelected = { marker -> store.accept(GeoMarkerStore.Intent.SelectMarker(marker)) },
                 componentContext = childContext("MapComponent"),
             )
 
         override val bottomSheetComponent: BottomSheetComponent =
             bottomSheetComponentFactory.create(
                 geoMarkerStore = store,
-                onMarkerSelected = { markerId -> store.accept(GeoMarkerStore.Intent.SelectMarker(markerId)) },
+                onMarkerSelected = { marker -> store.accept(GeoMarkerStore.Intent.SelectMarker(marker)) },
                 componentContext = childContext("BottomSheetComponent"),
             )
 

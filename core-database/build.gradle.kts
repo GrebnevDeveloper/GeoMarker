@@ -32,7 +32,7 @@ dependencies {
     implementation(project(":core-domain"))
 
     implementation(libs.androidx.core.ktx)
-    implementation(libs.yandex.mapkit.sdk)
+    implementation(libs.serialization.json)
     implementation(libs.room.core)
     implementation(libs.room.coroutines)
     ksp(libs.room.compiler)

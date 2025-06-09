@@ -35,10 +35,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import coil3.compose.rememberAsyncImagePainter
+import coil3.request.ImageRequest
+import coil3.request.crossfade
+import coil3.size.Scale
+import coil3.size.Size
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.grebnev.core.ui.R
 
@@ -130,6 +135,8 @@ private fun ImageThumbnailItem(
     isSelected: Boolean,
     onClick: () -> Unit,
 ) {
+    val context = LocalContext.current
+
     Box(
         contentAlignment = Alignment.Center,
         modifier =
@@ -138,7 +145,14 @@ private fun ImageThumbnailItem(
                 .padding(4.dp),
     ) {
         AsyncImage(
-            model = imageUri,
+            model =
+                ImageRequest
+                    .Builder(context)
+                    .data(imageUri)
+                    .size(Size(200, 200))
+                    .scale(Scale.FILL)
+                    .crossfade(true)
+                    .build(),
             contentDescription = null,
             contentScale = ContentScale.Crop,
             modifier =

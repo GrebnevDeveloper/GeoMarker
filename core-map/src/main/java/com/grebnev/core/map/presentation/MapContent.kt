@@ -108,9 +108,9 @@ fun MapContent(
                     context = context,
                     mapView = mapView,
                     markers = state.markers,
-                    selectedMarkerId = state.selectedMarkerId,
+                    selectedMarkerId = state.selectedMarker?.id,
                     onMarkerClick = { marker ->
-                        component.onIntent(MapStore.Intent.MarkerClicked(marker.id))
+                        component.onIntent(MapStore.Intent.MarkerClicked(marker))
                     },
                     updateCameraPosition = { position ->
                         component.onIntent(MapStore.Intent.UpdateCameraPosition(position))

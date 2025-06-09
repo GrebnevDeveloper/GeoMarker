@@ -29,7 +29,7 @@ class GeoMarkerStoreFactory
                         initialState =
                             State(
                                 markers = emptyList(),
-                                selectedMarkerId = null,
+                                selectedMarker = null,
                             ),
                         bootstrapper = BootstrapperImpl(),
                         executorFactory = ::ExecutorImpl,
@@ -48,7 +48,7 @@ class GeoMarkerStoreFactory
             ) : Msg
 
             data class MarkerSelected(
-                val markerId: Long?,
+                val marker: GeoMarker?,
             ) : Msg
         }
 
@@ -66,7 +66,7 @@ class GeoMarkerStoreFactory
             override fun executeIntent(intent: Intent) {
                 when (intent) {
                     is Intent.SelectMarker -> {
-                        dispatch(Msg.MarkerSelected(intent.markerId))
+                        dispatch(Msg.MarkerSelected(intent.marker))
                     }
 
                     is Intent.AddMarkerClicked -> {
@@ -91,7 +91,7 @@ class GeoMarkerStoreFactory
                         copy(markers = msg.markers)
 
                     is Msg.MarkerSelected -> {
-                        copy(selectedMarkerId = msg.markerId)
+                        copy(selectedMarker = msg.marker)
                     }
                 }
         }

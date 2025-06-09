@@ -37,7 +37,7 @@ interface MapStore : Store<Intent, State, Label> {
         ) : Intent
 
         data class MarkerClicked(
-            val markerId: Long,
+            val marker: GeoMarker,
         ) : Intent
     }
 
@@ -47,7 +47,7 @@ interface MapStore : Store<Intent, State, Label> {
         val isFirstLocation: Boolean,
         val timeUpdate: Long,
         val markers: List<GeoMarker>,
-        val selectedMarkerId: Long?,
+        val selectedMarker: GeoMarker?,
     ) {
         sealed interface LocationState {
             data object Initial : LocationState
@@ -64,7 +64,7 @@ interface MapStore : Store<Intent, State, Label> {
 
     sealed interface Label {
         data class MarkerSelected(
-            val markerId: Long?,
+            val marker: GeoMarker?,
         ) : Label
 
         data class CameraPositionChanged(
@@ -92,7 +92,7 @@ class MapStoreFactory
                             isFirstLocation = true,
                             timeUpdate = 0L,
                             markers = emptyList(),
-                            selectedMarkerId = null,
+                            selectedMarker = null,
                         ),
                     bootstrapper = BootstrapperImpl(geoMarkerStore),
                     executorFactory = ::ExecutorImpl,
@@ -117,7 +117,7 @@ class MapStoreFactory
             ) : Action
 
             data class MarkerSelected(
-                val markerId: Long?,
+                val marker: GeoMarker?,
             ) : Action
         }
 
@@ -143,7 +143,7 @@ class MapStoreFactory
             ) : Msg
 
             data class MarkerSelected(
-                val markerId: Long?,
+                val marker: GeoMarker?,
             ) : Msg
         }
 
@@ -167,7 +167,7 @@ class MapStoreFactory
 
             private suspend fun setSelectedMarker(store: GeoMarkerStore) {
                 store.stateFlow.collect { state ->
-                    dispatch(Action.MarkerSelected(state.selectedMarkerId))
+                    dispatch(Action.MarkerSelected(state.selectedMarker))
                 }
             }
 
@@ -260,8 +260,8 @@ class MapStoreFactory
                     }
 
                     is Intent.MarkerClicked -> {
-                        dispatch(Msg.MarkerSelected(intent.markerId))
-                        publish(Label.MarkerSelected(intent.markerId))
+                        dispatch(Msg.MarkerSelected(intent.marker))
+                        publish(Label.MarkerSelected(intent.marker))
                     }
                 }
             }
@@ -296,7 +296,7 @@ class MapStoreFactory
                     }
 
                     is Action.MarkerSelected -> {
-                        dispatch(Msg.MarkerSelected(action.markerId))
+                        dispatch(Msg.MarkerSelected(action.marker))
                     }
                 }
             }
@@ -326,7 +326,7 @@ class MapStoreFactory
                     }
 
                     is Msg.MarkerSelected -> {
-                        copy(selectedMarkerId = msg.markerId)
+                        copy(selectedMarker = msg.marker)
                     }
                 }
         }

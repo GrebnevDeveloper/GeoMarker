@@ -60,6 +60,10 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import coil3.compose.rememberAsyncImagePainter
+import coil3.request.ImageRequest
+import coil3.request.crossfade
+import coil3.size.Scale
+import coil3.size.Size
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
@@ -114,7 +118,7 @@ fun AddMarkerContent(
                     modifier
                         .padding(
                             top = padding.calculateTopPadding(),
-                            bottom = 10.dp,
+                            bottom = padding.calculateBottomPadding(),
                             start = 5.dp,
                             end = 5.dp,
                         ).fillMaxSize()
@@ -264,51 +268,6 @@ private fun DescriptionInputSection(
 }
 
 @Composable
-private fun LocationSection(
-    component: AddMarkerComponent,
-    state: AddMarkerStore.State,
-    modifier: Modifier = Modifier,
-) {
-    Card(
-        modifier = modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.medium,
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-    ) {
-        Column(
-            modifier = modifier.padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            Text(
-                text = stringResource(R.string.location),
-                style = MaterialTheme.typography.titleLarge,
-            )
-            MapContent(
-                component = component.mapComponent,
-                modifier =
-                    modifier
-                        .fillMaxSize()
-                        .height(300.dp)
-                        .pointerInput(Unit) {
-                            detectTransformGestures(
-                                onGesture = { centroid, pan, zoom, rotation ->
-                                    component.mapComponent.onIntent(
-                                        MapStore.Intent.UpdateCameraPosition(
-                                            state.location.calculateNewPosition(
-                                                panOffset = pan,
-                                                zoomChange = zoom - 1f,
-                                            ),
-                                        ),
-                                    )
-                                },
-                            )
-                        },
-                showPositionMarker = true,
-            )
-        }
-    }
-}
-
-@Composable
 private fun ImagesSection(
     selectedImages: List<Uri>,
     onAddImagesClick: () -> Unit,
@@ -358,6 +317,8 @@ private fun ImageThumbnailItem(
     onRemoveClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val context = LocalContext.current
+
     Box(
         modifier =
             modifier
@@ -365,7 +326,14 @@ private fun ImageThumbnailItem(
                 .size(96.dp),
     ) {
         AsyncImage(
-            model = imageUri,
+            model =
+                ImageRequest
+                    .Builder(context)
+                    .data(imageUri)
+                    .size(Size(200, 200))
+                    .scale(Scale.FILL)
+                    .crossfade(true)
+                    .build(),
             contentDescription = null,
             contentScale = ContentScale.Crop,
             modifier =

@@ -9,8 +9,10 @@ fun GeoMarker.toGeoMarkerDbModel(): GeoMarkerDbModel =
         description = description,
         latitude = latitude,
         longitude = longitude,
+        imagesUri = imagesUri,
     )
 
-fun GeoMarkerDbModel.toGeoMarker(): GeoMarker = GeoMarker(id, title, description, latitude, longitude)
+fun GeoMarkerDbModel.toGeoMarker(): GeoMarker =
+    GeoMarker(id, title, description, latitude, longitude, imagesUri)
 
 fun List<GeoMarkerDbModel>.toGeoMarkers(): List<GeoMarker> = map { it.toGeoMarker() }
