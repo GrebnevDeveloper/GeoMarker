@@ -6,7 +6,10 @@ import com.grebnev.feature.detailsmarker.presentation.DetailsMarkerContent
 import com.grebnev.feature.listmarkers.ListMarkersContent
 
 @Composable
-fun BottomSheetContent(component: BottomSheetComponent) {
+fun BottomSheetContent(
+    component: BottomSheetComponent,
+    hasStoragePermission: Boolean,
+) {
     Children(stack = component.stack) {
         when (val child = it.instance) {
             is BottomSheetComponent.Child.ListMarkers -> {
@@ -14,7 +17,10 @@ fun BottomSheetContent(component: BottomSheetComponent) {
             }
 
             is BottomSheetComponent.Child.DetailsMarker -> {
-                DetailsMarkerContent(child.component)
+                DetailsMarkerContent(
+                    component = child.component,
+                    hasStoragePermission = hasStoragePermission,
+                )
             }
         }
     }

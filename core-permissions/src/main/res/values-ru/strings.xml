@@ -7,4 +7,10 @@
     <string name="request_access">Для работы функции требуется %1$s. Предоставить доступ?</string>
     <string name="allow">Разрешить</string>
     <string name="access_required">Требуется доступ</string>
+    <string name="camera_access">доступ к камере</string>
+    <string name="location_access">Доступ к геолокации</string>
+    <string name="media_access">Доступ к медиафайлам</string>
+    <string name="read_storage_access">Чтение данных из хранилища</string>
+    <string name="write_storage_access">Запись данных в хранилище</string>
+    <string name="functions_not_available">Следующие функции недоступны:</string>
 </resources>

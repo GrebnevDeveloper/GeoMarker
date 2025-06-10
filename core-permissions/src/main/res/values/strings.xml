@@ -7,4 +7,10 @@
     <string name="request_access">The function requires %1$s. Grant access?</string>
     <string name="allow">Allow</string>
     <string name="access_required">Access is required</string>
+    <string name="camera_access">camera access</string>
+    <string name="location_access">Access to location</string>
+    <string name="media_access">Access to media files</string>
+    <string name="read_storage_access">Read data from storage</string>
+    <string name="write_storage_access">Write data to storage</string>
+    <string name="functions_not_available">The following functions are not available:</string>
 </resources>

@@ -36,6 +36,7 @@ dependencies {
     implementation(project(":core-domain"))
     implementation(project(":core-database"))
     implementation(project(":core-extensions"))
+    implementation(project(":core-permissions"))
     implementation(project(":feature-bottomsheet-navigation"))
     implementation(project(":feature-geomarker-api"))
 

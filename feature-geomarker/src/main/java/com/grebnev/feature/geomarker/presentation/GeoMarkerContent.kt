@@ -1,5 +1,7 @@
 package com.grebnev.feature.geomarker.presentation
 
+import android.Manifest
+import android.os.Build
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -24,6 +26,7 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.grebnev.core.map.presentation.MapContent
+import com.grebnev.core.permissions.multiple.MultiplePermissionsRequest
 import com.grebnev.feature.bottomsheet.navigation.BottomSheetContent
 import com.grebnev.feature.geomarker.api.GeoMarkerStore
 
@@ -51,42 +54,83 @@ fun GeoMarkerContent(component: GeoMarkerComponent) {
     val configuration = LocalConfiguration.current
     val screenHeight = configuration.screenHeightDp.dp
 
-    BottomSheetScaffold(
-        scaffoldState = sheetState,
-        sheetPeekHeight = screenHeight / 4,
-        content = { paddingValues ->
-            Box {
-                MapContent(
-                    component = component.mapComponent,
-                    showCurrentLocation = true,
-                    showMarkers = true,
-                )
-                FloatingActionButton(
+    MultiplePermissionsRequest(
+        permissions = requiredPermissions(),
+    ) { permissions ->
+
+        val hasLocation = permissions[Manifest.permission.ACCESS_FINE_LOCATION] ?: false
+        val hasStorage =
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                permissions[Manifest.permission.READ_MEDIA_IMAGES] ?: false
+            } else {
+                permissions[Manifest.permission.READ_EXTERNAL_STORAGE] ?: false
+            }
+
+        BottomSheetScaffold(
+            scaffoldState = sheetState,
+            sheetPeekHeight = screenHeight / 4,
+            content = { paddingValues ->
+                Box {
+                    MapContent(
+                        component = component.mapComponent,
+                        hasLocationPermission = hasLocation,
+                        showCurrentLocation = true,
+                        showMarkers = true,
+                    )
+                    FloatingActionButton(
+                        modifier =
+                            Modifier
+                                .align(Alignment.BottomEnd)
+                                .padding(end = 10.dp, bottom = screenHeight / 4 + 5.dp)
+                                .size(70.dp),
+                        onClick = { component.onIntent(GeoMarkerStore.Intent.AddMarkerClicked) },
+                        shape = CircleShape,
+                    ) {
+                        Icon(
+                            modifier = Modifier.size(35.dp),
+                            imageVector = Icons.Rounded.AddLocationAlt,
+                            contentDescription = null,
+                        )
+                    }
+                }
+            },
+            sheetContent = {
+                Box(
                     modifier =
                         Modifier
-                            .align(Alignment.BottomEnd)
-                            .padding(end = 10.dp, bottom = screenHeight / 4 + 5.dp)
-                            .size(70.dp),
-                    onClick = { component.onIntent(GeoMarkerStore.Intent.AddMarkerClicked) },
-                    shape = CircleShape,
+                            .height(screenHeight / 5 * 4)
+                            .fillMaxWidth(),
                 ) {
-                    Icon(
-                        modifier = Modifier.size(35.dp),
-                        imageVector = Icons.Rounded.AddLocationAlt,
-                        contentDescription = null,
+                    BottomSheetContent(
+                        component = component.bottomSheetComponent,
+                        hasStoragePermission = hasStorage,
                     )
                 }
-            }
-        },
-        sheetContent = {
-            Box(
-                modifier =
-                    Modifier
-                        .height(screenHeight / 5 * 4)
-                        .fillMaxWidth(),
-            ) {
-                BottomSheetContent(component.bottomSheetComponent)
-            }
-        },
-    )
+            },
+        )
+    }
 }
+
+private fun requiredPermissions() =
+    when {
+        Build.VERSION.SDK_INT < Build.VERSION_CODES.Q -> {
+            setOf(
+                Manifest.permission.ACCESS_FINE_LOCATION,
+                Manifest.permission.ACCESS_COARSE_LOCATION,
+                Manifest.permission.READ_EXTERNAL_STORAGE,
+            )
+        }
+        Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q &&
+            Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU -> {
+            setOf(
+                Manifest.permission.ACCESS_FINE_LOCATION,
+                Manifest.permission.READ_EXTERNAL_STORAGE,
+            )
+        }
+        else -> {
+            setOf(
+                Manifest.permission.ACCESS_FINE_LOCATION,
+                Manifest.permission.READ_MEDIA_IMAGES,
+            )
+        }
+    }

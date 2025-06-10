@@ -13,7 +13,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.Lifecycle
@@ -21,14 +20,12 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
-import com.google.accompanist.permissions.isGranted
-import com.grebnev.core.map.R
+import com.google.accompanist.permissions.rememberPermissionState
 import com.grebnev.core.map.extensions.hasSignificantDifferenceFrom
 import com.grebnev.core.map.ui.CurrentLocationMarker
 import com.grebnev.core.map.ui.GeoMarkers
 import com.grebnev.core.map.ui.MapControls
 import com.grebnev.core.map.ui.PositionMarker
-import com.grebnev.core.permissions.PermissionRequired
 import com.yandex.mapkit.Animation
 import com.yandex.mapkit.MapKitFactory
 import com.yandex.mapkit.map.CameraListener
@@ -41,6 +38,7 @@ import com.yandex.mapkit.mapview.MapView
 @Composable
 fun MapContent(
     component: MapComponent,
+    hasLocationPermission: Boolean,
     modifier: Modifier = Modifier,
     showCurrentLocation: Boolean = false,
     showMarkers: Boolean = false,
@@ -49,6 +47,7 @@ fun MapContent(
     val state by component.model.subscribeAsState()
     val context = LocalContext.current
     val mapView = rememberMapViewWithLifecycle(context)
+    val permissionState = rememberPermissionState(Manifest.permission.ACCESS_FINE_LOCATION)
 
     HandleFirstLocation(
         state = state,
@@ -63,63 +62,57 @@ fun MapContent(
         },
     )
 
-    PermissionRequired(
-        context = context,
-        permission = Manifest.permission.ACCESS_FINE_LOCATION,
-        permissionDescription = stringResource(R.string.location_access),
-    ) { permissionState ->
-        LaunchedEffect(permissionState.status) {
-            if (permissionState.status.isGranted) {
-                component.onIntent(MapStore.Intent.StartLocationUpdates)
-            } else {
-                component.onIntent(MapStore.Intent.StopLocationUpdates)
+    LaunchedEffect(hasLocationPermission) {
+        if (hasLocationPermission) {
+            component.onIntent(MapStore.Intent.StartLocationUpdates)
+        } else {
+            component.onIntent(MapStore.Intent.StopLocationUpdates)
+        }
+    }
+
+    Box(modifier = modifier.fillMaxSize()) {
+        AndroidView(
+            modifier = modifier.fillMaxSize(),
+            factory = { mapView },
+        )
+        if (hasLocationPermission) {
+            if (showCurrentLocation) {
+                CurrentLocationMarker(
+                    context = context,
+                    mapView = mapView,
+                    locationState = state.locationState,
+                )
             }
         }
 
-        Box(modifier = modifier.fillMaxSize()) {
-            AndroidView(
-                modifier = modifier.fillMaxSize(),
-                factory = { mapView },
-            )
-            if (permissionState.status.isGranted) {
-                if (showCurrentLocation) {
-                    CurrentLocationMarker(
-                        context = context,
-                        mapView = mapView,
-                        locationState = state.locationState,
-                    )
-                }
-            }
+        MapControls(
+            modifier =
+                Modifier
+                    .align(Alignment.CenterEnd)
+                    .padding(end = 16.dp, bottom = 20.dp),
+            locationState = state.locationState,
+            hasPermission = hasLocationPermission,
+            onRequestPermission = { permissionState.launchPermissionRequest() },
+            onMoveToMyLocation = { component.onIntent(MapStore.Intent.MoveToMyLocation) },
+            onChangeZoom = { delta -> component.onIntent(MapStore.Intent.ChangeZoom(delta)) },
+        )
 
-            MapControls(
-                modifier =
-                    Modifier
-                        .align(Alignment.CenterEnd)
-                        .padding(end = 16.dp, bottom = 20.dp),
-                locationState = state.locationState,
-                hasPermission = permissionState.status.isGranted,
-                onRequestPermission = { permissionState.launchPermissionRequest() },
-                onMoveToMyLocation = { component.onIntent(MapStore.Intent.MoveToMyLocation) },
-                onChangeZoom = { delta -> component.onIntent(MapStore.Intent.ChangeZoom(delta)) },
+        if (showMarkers) {
+            GeoMarkers(
+                context = context,
+                mapView = mapView,
+                markers = state.markers,
+                selectedMarkerId = state.selectedMarker?.id,
+                onMarkerClick = { marker ->
+                    component.onIntent(MapStore.Intent.MarkerClicked(marker))
+                },
+                updateCameraPosition = { position ->
+                    component.onIntent(MapStore.Intent.UpdateCameraPosition(position))
+                },
             )
-
-            if (showMarkers) {
-                GeoMarkers(
-                    context = context,
-                    mapView = mapView,
-                    markers = state.markers,
-                    selectedMarkerId = state.selectedMarker?.id,
-                    onMarkerClick = { marker ->
-                        component.onIntent(MapStore.Intent.MarkerClicked(marker))
-                    },
-                    updateCameraPosition = { position ->
-                        component.onIntent(MapStore.Intent.UpdateCameraPosition(position))
-                    },
-                )
-            }
-            if (showPositionMarker) {
-                PositionMarker(modifier = Modifier.align(Alignment.Center))
-            }
+        }
+        if (showPositionMarker) {
+            PositionMarker(modifier = Modifier.align(Alignment.Center))
         }
     }
 

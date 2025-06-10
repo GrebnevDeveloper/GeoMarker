@@ -1,7 +1,6 @@
 package com.grebnev.feature.addmarker.presentation
 
 import android.Manifest
-import android.content.Context
 import android.net.Uri
 import android.os.Build
 import androidx.compose.foundation.background
@@ -47,7 +46,6 @@ import androidx.compose.material3.rememberStandardBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -66,12 +64,13 @@ import coil3.size.Scale
 import coil3.size.Size
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
-import com.google.accompanist.permissions.isGranted
+import com.google.accompanist.permissions.rememberPermissionState
 import com.grebnev.core.map.extensions.calculateNewPosition
 import com.grebnev.core.map.presentation.MapContent
 import com.grebnev.core.map.presentation.MapStore
-import com.grebnev.core.permissions.PermissionRequired
+import com.grebnev.core.permissions.multiple.MultiplePermissionsRequest
 import com.grebnev.feature.addmarker.R
+import com.grebnev.feature.imagepicker.presentation.ImagePickerComponent
 import com.grebnev.feature.imagepicker.presentation.ImagePickerContent
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalPermissionsApi::class)
@@ -81,10 +80,16 @@ fun AddMarkerContent(
     modifier: Modifier = Modifier,
 ) {
     val state by component.model.subscribeAsState()
+
+    val permissionState =
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            rememberPermissionState(Manifest.permission.READ_MEDIA_IMAGES)
+        } else {
+            rememberPermissionState(Manifest.permission.READ_EXTERNAL_STORAGE)
+        }
+
     val scrollState = rememberScrollState()
     val focusManager = LocalFocusManager.current
-
-    val context = LocalContext.current
 
     val sheetState =
         rememberBottomSheetScaffoldState(
@@ -103,122 +108,137 @@ fun AddMarkerContent(
         }
     }
 
-    BottomSheetScaffold(
-        modifier = modifier.fillMaxSize(),
-        scaffoldState = sheetState,
-        topBar = {
-            TopBar(
-                titleScreen = stringResource(R.string.adding_new_marker),
-                onBackClick = { component.onIntent(AddMarkerStore.Intent.BackClicked) },
-            )
-        },
-        content = { padding ->
-            Column(
-                modifier =
-                    modifier
-                        .padding(
-                            top = padding.calculateTopPadding(),
-                            bottom = padding.calculateBottomPadding(),
-                            start = 5.dp,
-                            end = 5.dp,
-                        ).fillMaxSize()
-                        .verticalScroll(scrollState),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
-            ) {
-                TitleInputSection(
-                    title = state.title,
-                    validationError =
-                        state.validationErrors.contains(
-                            AddMarkerStore.State.ValidationError.TITLE_EMPTY,
-                        ),
-                    onTitleChanged = { title ->
-                        component.onIntent(AddMarkerStore.Intent.TitleChanged(title))
-                    },
-                )
+    MultiplePermissionsRequest(
+        permissions = requiredPermissions(),
+    ) { permissions ->
+        val hasLocation = permissions[Manifest.permission.ACCESS_FINE_LOCATION] ?: false
+        val hasStorage =
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                permissions[Manifest.permission.READ_MEDIA_IMAGES] ?: false
+            } else {
+                permissions[Manifest.permission.READ_EXTERNAL_STORAGE] ?: false
+            }
 
-                DescriptionInputSection(
-                    description = state.description,
-                    validationError =
-                        state.validationErrors.contains(
-                            AddMarkerStore.State.ValidationError.DESCRIPTION_TOO_LONG,
-                        ),
-                    onDescriptionChanged = { description ->
-                        component.onIntent(AddMarkerStore.Intent.DescriptionChanged(description))
-                    },
+        BottomSheetScaffold(
+            modifier = modifier.fillMaxSize(),
+            scaffoldState = sheetState,
+            topBar = {
+                TopBar(
+                    titleScreen = stringResource(R.string.adding_new_marker),
+                    onBackClick = { component.onIntent(AddMarkerStore.Intent.BackClicked) },
                 )
-
-                ImagesSection(
-                    selectedImages = state.selectedImages,
-                    onAddImagesClick = {
-                        component.onIntent(
-                            AddMarkerStore.Intent.AddImagesClicked(state.selectedImages),
-                        )
-                    },
-                    onRemoveImage = { imageUri ->
-                        component.onIntent(AddMarkerStore.Intent.RemoveImage(imageUri))
-                    },
-                )
-
-                Card(
-                    modifier = modifier.fillMaxWidth(),
-                    shape = MaterialTheme.shapes.medium,
-                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+            },
+            content = { padding ->
+                Column(
+                    modifier =
+                        modifier
+                            .padding(
+                                top = padding.calculateTopPadding(),
+                                bottom = padding.calculateBottomPadding(),
+                                start = 5.dp,
+                                end = 5.dp,
+                            ).fillMaxSize()
+                            .verticalScroll(scrollState),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
                 ) {
-                    Column(
-                        modifier = Modifier.padding(12.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        Text(
-                            text = stringResource(R.string.location),
-                            style = MaterialTheme.typography.titleLarge,
-                        )
+                    TitleInputSection(
+                        title = state.title,
+                        validationError =
+                            state.validationErrors.contains(
+                                AddMarkerStore.State.ValidationError.TITLE_EMPTY,
+                            ),
+                        onTitleChanged = { title ->
+                            component.onIntent(AddMarkerStore.Intent.TitleChanged(title))
+                        },
+                    )
 
-                        MapContent(
-                            component = component.mapComponent,
-                            modifier =
-                                Modifier
-                                    .height(300.dp)
-                                    .clip(MaterialTheme.shapes.small)
-                                    .pointerInput(Unit) {
-                                        detectTransformGestures(
-                                            onGesture = { centroid, pan, zoom, rotation ->
-                                                component.mapComponent.onIntent(
-                                                    MapStore.Intent.UpdateCameraPosition(
-                                                        state.location.calculateNewPosition(
-                                                            panOffset = pan,
-                                                            zoomChange = zoom - 1f,
+                    DescriptionInputSection(
+                        description = state.description,
+                        validationError =
+                            state.validationErrors.contains(
+                                AddMarkerStore.State.ValidationError.DESCRIPTION_TOO_LONG,
+                            ),
+                        onDescriptionChanged = { description ->
+                            component.onIntent(AddMarkerStore.Intent.DescriptionChanged(description))
+                        },
+                    )
+
+                    ImagesSection(
+                        selectedImages = state.selectedImages,
+                        onAddImagesClick = {
+                            focusManager.clearFocus()
+                            if (hasStorage) {
+                                component.onIntent(
+                                    AddMarkerStore.Intent.AddImagesClicked(state.selectedImages),
+                                )
+                            } else {
+                                permissionState.launchPermissionRequest()
+                            }
+                        },
+                        onRemoveImage = { imageUri ->
+                            component.onIntent(AddMarkerStore.Intent.RemoveImage(imageUri))
+                        },
+                    )
+
+                    Card(
+                        modifier = modifier.fillMaxWidth(),
+                        shape = MaterialTheme.shapes.medium,
+                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(12.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            Text(
+                                text = stringResource(R.string.location),
+                                style = MaterialTheme.typography.titleLarge,
+                            )
+
+                            MapContent(
+                                component = component.mapComponent,
+                                hasLocationPermission = hasLocation,
+                                modifier =
+                                    Modifier
+                                        .height(300.dp)
+                                        .clip(MaterialTheme.shapes.small)
+                                        .pointerInput(Unit) {
+                                            detectTransformGestures(
+                                                onGesture = { centroid, pan, zoom, rotation ->
+                                                    component.mapComponent.onIntent(
+                                                        MapStore.Intent.UpdateCameraPosition(
+                                                            state.location.calculateNewPosition(
+                                                                panOffset = pan,
+                                                                zoomChange = zoom - 1f,
+                                                            ),
                                                         ),
-                                                    ),
-                                                )
-                                            },
-                                        )
-                                    },
-                            showPositionMarker = true,
-                        )
+                                                    )
+                                                },
+                                            )
+                                        },
+                                showPositionMarker = true,
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.weight(1f))
+
+                    Button(
+                        modifier = modifier.fillMaxWidth(),
+                        onClick = {
+                            focusManager.clearFocus()
+                            component.onIntent(AddMarkerStore.Intent.SubmitClicked)
+                        },
+                        enabled = state.isValid,
+                    ) {
+                        Text(stringResource(R.string.save))
                     }
                 }
-
-                Spacer(modifier = Modifier.weight(1f))
-
-                Button(
-                    modifier = modifier.fillMaxWidth(),
-                    onClick = {
-                        focusManager.clearFocus()
-                        component.onIntent(AddMarkerStore.Intent.SubmitClicked)
-                    },
-                    enabled = state.isValid,
-                ) {
-                    Text(stringResource(R.string.save))
-                }
-            }
-        },
-        sheetContent = {
-            ImagePickerSheetContent(
-                component = component,
-                context = context,
-            )
-        },
-    )
+            },
+            sheetContent = {
+                ImagePickerSheetContent(component = component.imagePickerComponent)
+            },
+        )
+    }
 }
 
 @Composable
@@ -373,8 +393,7 @@ private fun ImageThumbnailItem(
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
 private fun ImagePickerSheetContent(
-    component: AddMarkerComponent,
-    context: Context,
+    component: ImagePickerComponent,
     modifier: Modifier = Modifier,
 ) {
     val configuration = LocalConfiguration.current
@@ -386,29 +405,9 @@ private fun ImagePickerSheetContent(
                 .height(screenHeight / 2)
                 .fillMaxWidth(),
     ) {
-        PermissionRequired(
-            context = context,
-            permission =
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                    Manifest.permission.READ_MEDIA_IMAGES
-                } else {
-                    Manifest.permission.READ_EXTERNAL_STORAGE
-                },
-            permissionDescription =
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                    stringResource(com.grebnev.feature.imagepicker.R.string.media_images_access)
-                } else {
-                    stringResource(com.grebnev.feature.imagepicker.R.string.external_storage_access)
-                },
-        ) { permissionState ->
-            if (permissionState.status.isGranted) {
-                ImagePickerContent(
-                    component = component.imagePickerComponent,
-                )
-            } else {
-                component.onIntent(AddMarkerStore.Intent.CancelImagesSelection)
-            }
-        }
+        ImagePickerContent(
+            component = component,
+        )
     }
 }
 
@@ -438,3 +437,29 @@ private fun TopBar(
         },
     )
 }
+
+private fun requiredPermissions() =
+    when {
+        Build.VERSION.SDK_INT < Build.VERSION_CODES.Q -> {
+            setOf(
+                Manifest.permission.ACCESS_FINE_LOCATION,
+                Manifest.permission.ACCESS_COARSE_LOCATION,
+                Manifest.permission.READ_EXTERNAL_STORAGE,
+            )
+        }
+
+        Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q &&
+            Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU -> {
+            setOf(
+                Manifest.permission.ACCESS_FINE_LOCATION,
+                Manifest.permission.READ_EXTERNAL_STORAGE,
+            )
+        }
+
+        else -> {
+            setOf(
+                Manifest.permission.ACCESS_FINE_LOCATION,
+                Manifest.permission.READ_MEDIA_IMAGES,
+            )
+        }
+    }

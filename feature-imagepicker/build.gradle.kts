@@ -31,6 +31,7 @@ android {
 dependencies {
     implementation(project(":core-extensions"))
     implementation(project(":core-gallery"))
+    implementation(project(":core-permissions"))
     implementation(project(":core-ui"))
 
     implementation(libs.androidx.core.ktx)
@@ -38,6 +39,7 @@ dependencies {
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.bundles.ui)
     implementation(libs.androidx.compose.icons)
+    implementation(libs.accompanist.permissions)
     implementation(libs.coil)
     implementation(libs.bundles.decompose)
     implementation(libs.bundles.mvikotlin)
