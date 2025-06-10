@@ -4,13 +4,13 @@ import android.content.Context
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.edit
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
+import com.google.accompanist.permissions.PermissionState
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import com.google.accompanist.permissions.shouldShowRationale
@@ -21,12 +21,11 @@ import com.grebnev.core.permissions.extensions.openAppSettings
 @Composable
 fun MultiplePermissionsRequest(
     permissions: Set<String>,
-    content: @Composable (Map<String, Boolean>) -> Unit,
+    content: @Composable (List<PermissionState>) -> Unit,
 ) {
     val context = LocalContext.current
     val permissionsState = rememberMultiplePermissionsState(permissions.toList())
     var showDeniedDialog by remember { mutableStateOf(false) }
-    val deniedPermissions = remember { mutableStateMapOf<String, Boolean>() }
 
     val isFirstLaunch =
         remember {
@@ -46,13 +45,11 @@ fun MultiplePermissionsRequest(
 
     LaunchedEffect(permissionsState.permissions) {
         if (!isFirstLaunch) {
-            deniedPermissions.clear()
             var hasPermanentDenial = false
 
             permissionsState.permissions.forEach { permission ->
                 if (!permission.status.isGranted) {
                     val isPermanent = !permission.status.shouldShowRationale
-                    deniedPermissions[permission.permission] = isPermanent
                     if (isPermanent) hasPermanentDenial = true
                 }
             }
@@ -63,7 +60,11 @@ fun MultiplePermissionsRequest(
     if (showDeniedDialog) {
         MultiplePermissionsDeniedDialog(
             context = context,
-            permissionsText = deniedPermissions.filter { it.value }.keys,
+            permissionsText =
+                permissionsState.permissions
+                    .filter { !it.status.isGranted }
+                    .map { it.permission }
+                    .toSet(),
             onOpenSettings = {
                 context.openAppSettings()
                 showDeniedDialog = false
@@ -72,9 +73,5 @@ fun MultiplePermissionsRequest(
         )
     }
 
-    content(
-        permissionsState.permissions.associate {
-            it.permission to it.status.isGranted
-        },
-    )
+    content(permissionsState.permissions)
 }

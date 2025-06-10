@@ -1,6 +1,5 @@
 package com.grebnev.core.map.presentation
 
-import android.Manifest
 import android.content.Context
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -20,7 +19,8 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
-import com.google.accompanist.permissions.rememberPermissionState
+import com.google.accompanist.permissions.PermissionState
+import com.google.accompanist.permissions.isGranted
 import com.grebnev.core.map.extensions.hasSignificantDifferenceFrom
 import com.grebnev.core.map.ui.CurrentLocationMarker
 import com.grebnev.core.map.ui.GeoMarkers
@@ -38,7 +38,7 @@ import com.yandex.mapkit.mapview.MapView
 @Composable
 fun MapContent(
     component: MapComponent,
-    hasLocationPermission: Boolean,
+    locationPermissionState: PermissionState,
     modifier: Modifier = Modifier,
     showCurrentLocation: Boolean = false,
     showMarkers: Boolean = false,
@@ -47,7 +47,6 @@ fun MapContent(
     val state by component.model.subscribeAsState()
     val context = LocalContext.current
     val mapView = rememberMapViewWithLifecycle(context)
-    val permissionState = rememberPermissionState(Manifest.permission.ACCESS_FINE_LOCATION)
 
     HandleFirstLocation(
         state = state,
@@ -62,8 +61,8 @@ fun MapContent(
         },
     )
 
-    LaunchedEffect(hasLocationPermission) {
-        if (hasLocationPermission) {
+    LaunchedEffect(locationPermissionState.status) {
+        if (locationPermissionState.status.isGranted) {
             component.onIntent(MapStore.Intent.StartLocationUpdates)
         } else {
             component.onIntent(MapStore.Intent.StopLocationUpdates)
@@ -75,7 +74,7 @@ fun MapContent(
             modifier = modifier.fillMaxSize(),
             factory = { mapView },
         )
-        if (hasLocationPermission) {
+        if (locationPermissionState.status.isGranted) {
             if (showCurrentLocation) {
                 CurrentLocationMarker(
                     context = context,
@@ -91,8 +90,8 @@ fun MapContent(
                     .align(Alignment.CenterEnd)
                     .padding(end = 16.dp, bottom = 20.dp),
             locationState = state.locationState,
-            hasPermission = hasLocationPermission,
-            onRequestPermission = { permissionState.launchPermissionRequest() },
+            hasPermission = locationPermissionState.status.isGranted,
+            onRequestPermission = { locationPermissionState.launchPermissionRequest() },
             onMoveToMyLocation = { component.onIntent(MapStore.Intent.MoveToMyLocation) },
             onChangeZoom = { delta -> component.onIntent(MapStore.Intent.ChangeZoom(delta)) },
         )

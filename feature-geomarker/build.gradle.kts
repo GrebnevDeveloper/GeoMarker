@@ -45,6 +45,7 @@ dependencies {
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.bundles.ui)
     implementation(libs.androidx.compose.icons)
+    implementation(libs.accompanist.permissions)
     implementation(libs.bundles.decompose)
     implementation(libs.bundles.mvikotlin)
     implementation(libs.hilt.android)

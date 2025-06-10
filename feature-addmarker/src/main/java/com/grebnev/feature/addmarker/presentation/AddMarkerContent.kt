@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalPermissionsApi::class)
+
 package com.grebnev.feature.addmarker.presentation
 
 import android.Manifest
@@ -64,32 +66,27 @@ import coil3.size.Scale
 import coil3.size.Size
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
+import com.google.accompanist.permissions.PermissionState
+import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
 import com.grebnev.core.map.extensions.calculateNewPosition
 import com.grebnev.core.map.presentation.MapContent
 import com.grebnev.core.map.presentation.MapStore
+import com.grebnev.core.permissions.PermissionConstants
 import com.grebnev.core.permissions.multiple.MultiplePermissionsRequest
 import com.grebnev.feature.addmarker.R
 import com.grebnev.feature.imagepicker.presentation.ImagePickerComponent
 import com.grebnev.feature.imagepicker.presentation.ImagePickerContent
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalPermissionsApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddMarkerContent(
     component: AddMarkerComponent,
     modifier: Modifier = Modifier,
 ) {
     val state by component.model.subscribeAsState()
-
-    val permissionState =
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            rememberPermissionState(Manifest.permission.READ_MEDIA_IMAGES)
-        } else {
-            rememberPermissionState(Manifest.permission.READ_EXTERNAL_STORAGE)
-        }
-
-    val scrollState = rememberScrollState()
     val focusManager = LocalFocusManager.current
+    val scrollState = rememberScrollState()
 
     val sheetState =
         rememberBottomSheetScaffoldState(
@@ -109,16 +106,8 @@ fun AddMarkerContent(
     }
 
     MultiplePermissionsRequest(
-        permissions = requiredPermissions(),
-    ) { permissions ->
-        val hasLocation = permissions[Manifest.permission.ACCESS_FINE_LOCATION] ?: false
-        val hasStorage =
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                permissions[Manifest.permission.READ_MEDIA_IMAGES] ?: false
-            } else {
-                permissions[Manifest.permission.READ_EXTERNAL_STORAGE] ?: false
-            }
-
+        permissions = PermissionConstants.requiredPermissions(),
+    ) { permissionsState ->
         BottomSheetScaffold(
             modifier = modifier.fillMaxSize(),
             scaffoldState = sheetState,
@@ -165,15 +154,10 @@ fun AddMarkerContent(
 
                     ImagesSection(
                         selectedImages = state.selectedImages,
+                        permissionsState = permissionsState,
                         onAddImagesClick = {
                             focusManager.clearFocus()
-                            if (hasStorage) {
-                                component.onIntent(
-                                    AddMarkerStore.Intent.AddImagesClicked(state.selectedImages),
-                                )
-                            } else {
-                                permissionState.launchPermissionRequest()
-                            }
+                            component.onIntent(AddMarkerStore.Intent.AddImagesClicked(state.selectedImages))
                         },
                         onRemoveImage = { imageUri ->
                             component.onIntent(AddMarkerStore.Intent.RemoveImage(imageUri))
@@ -194,9 +178,14 @@ fun AddMarkerContent(
                                 style = MaterialTheme.typography.titleLarge,
                             )
 
+                            val locationPermissionState =
+                                permissionsState.find {
+                                    it.permission == Manifest.permission.ACCESS_FINE_LOCATION
+                                } ?: rememberPermissionState(Manifest.permission.ACCESS_FINE_LOCATION)
+
                             MapContent(
                                 component = component.mapComponent,
-                                hasLocationPermission = hasLocation,
+                                locationPermissionState = locationPermissionState,
                                 modifier =
                                     Modifier
                                         .height(300.dp)
@@ -290,10 +279,24 @@ private fun DescriptionInputSection(
 @Composable
 private fun ImagesSection(
     selectedImages: List<Uri>,
+    permissionsState: List<PermissionState>,
     onAddImagesClick: () -> Unit,
     onRemoveImage: (Uri) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val storagePermissionName =
+        if (Build.VERSION.SDK_INT >=
+            Build.VERSION_CODES.TIRAMISU
+        ) {
+            Manifest.permission.READ_MEDIA_IMAGES
+        } else {
+            Manifest.permission.READ_EXTERNAL_STORAGE
+        }
+
+    val storagePermissionState =
+        permissionsState.find { it.permission == storagePermissionName }
+            ?: rememberPermissionState(storagePermissionName)
+
     Card(
         modifier = modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.medium,
@@ -309,7 +312,14 @@ private fun ImagesSection(
             )
 
             Button(
-                onClick = onAddImagesClick,
+                onClick = {
+                    if (storagePermissionState.status.isGranted) {
+                        onAddImagesClick()
+                    } else {
+                        storagePermissionState
+                            .launchPermissionRequest()
+                    }
+                },
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Icon(imageVector = Icons.Default.Photo, contentDescription = null)
@@ -390,7 +400,6 @@ private fun ImageThumbnailItem(
     }
 }
 
-@OptIn(ExperimentalPermissionsApi::class)
 @Composable
 private fun ImagePickerSheetContent(
     component: ImagePickerComponent,
@@ -437,29 +446,3 @@ private fun TopBar(
         },
     )
 }
-
-private fun requiredPermissions() =
-    when {
-        Build.VERSION.SDK_INT < Build.VERSION_CODES.Q -> {
-            setOf(
-                Manifest.permission.ACCESS_FINE_LOCATION,
-                Manifest.permission.ACCESS_COARSE_LOCATION,
-                Manifest.permission.READ_EXTERNAL_STORAGE,
-            )
-        }
-
-        Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q &&
-            Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU -> {
-            setOf(
-                Manifest.permission.ACCESS_FINE_LOCATION,
-                Manifest.permission.READ_EXTERNAL_STORAGE,
-            )
-        }
-
-        else -> {
-            setOf(
-                Manifest.permission.ACCESS_FINE_LOCATION,
-                Manifest.permission.READ_MEDIA_IMAGES,
-            )
-        }
-    }
