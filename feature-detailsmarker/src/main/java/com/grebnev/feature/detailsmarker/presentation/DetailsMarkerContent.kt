@@ -45,6 +45,7 @@ import com.grebnev.feature.detailsmarker.R
 @Composable
 fun DetailsMarkerContent(
     component: DetailsMarkerComponent,
+    hasStoragePermission: Boolean,
     modifier: Modifier = Modifier,
 ) {
     val state by component.model.subscribeAsState()
@@ -69,10 +70,12 @@ fun DetailsMarkerContent(
                         .padding(bottom = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                val imagesUri = state.marker.imagesUri
-                if (imagesUri.isNotEmpty()) {
-                    item {
-                        ImagesSection(imagesUri)
+                if (hasStoragePermission) {
+                    val imagesUri = state.marker.imagesUri
+                    if (imagesUri.isNotEmpty()) {
+                        item {
+                            ImagesSection(imagesUri)
+                        }
                     }
                 }
 

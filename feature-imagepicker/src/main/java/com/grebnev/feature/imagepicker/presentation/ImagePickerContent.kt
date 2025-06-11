@@ -1,5 +1,6 @@
 package com.grebnev.feature.imagepicker.presentation
 
+import android.Manifest
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -45,8 +46,12 @@ import coil3.request.crossfade
 import coil3.size.Scale
 import coil3.size.Size
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
+import com.google.accompanist.permissions.ExperimentalPermissionsApi
+import com.google.accompanist.permissions.isGranted
+import com.grebnev.core.permissions.single.PermissionRequest
 import com.grebnev.core.ui.R
 
+@OptIn(ExperimentalPermissionsApi::class)
 @Composable
 fun ImagePickerContent(
     component: ImagePickerComponent,
@@ -57,6 +62,8 @@ fun ImagePickerContent(
         rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { result ->
             component.onIntent(ImagePickerStore.Intent.PhotoTaken(result))
         }
+
+    // val permissionState = rememberPermissionState(Manifest.permission.CAMERA)
 
     Column(
         modifier = modifier.padding(16.dp),
@@ -90,13 +97,21 @@ fun ImagePickerContent(
             modifier = Modifier.heightIn(max = 400.dp),
         ) {
             item {
-                CameraPlaceholderItem(
-                    onClick = {
-                        state.photoUri?.let {
-                            takePhotoLauncher.launch(it)
-                        }
-                    },
-                )
+                PermissionRequest(
+                    permission = Manifest.permission.CAMERA,
+                ) { permissionState, onPermissionCheck ->
+                    CameraPlaceholderItem(
+                        onClick = {
+                            if (permissionState.status.isGranted) {
+                                state.photoUri?.let {
+                                    takePhotoLauncher.launch(it)
+                                }
+                            } else {
+                                onPermissionCheck()
+                            }
+                        },
+                    )
+                }
             }
 
             items(items = state.availableImagesUri) { imageUri ->

@@ -36,6 +36,7 @@ dependencies {
     implementation(project(":core-domain"))
     implementation(project(":core-database"))
     implementation(project(":core-extensions"))
+    implementation(project(":core-permissions"))
     implementation(project(":feature-bottomsheet-navigation"))
     implementation(project(":feature-geomarker-api"))
 
@@ -44,6 +45,7 @@ dependencies {
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.bundles.ui)
     implementation(libs.androidx.compose.icons)
+    implementation(libs.accompanist.permissions)
     implementation(libs.bundles.decompose)
     implementation(libs.bundles.mvikotlin)
     implementation(libs.hilt.android)
