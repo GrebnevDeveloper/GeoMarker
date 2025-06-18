@@ -31,9 +31,10 @@ class DefaultBottomSheetComponent
     constructor(
         private val listMarkersComponentFactory: DefaultListMarkersComponent.Factory,
         private val detailsMarkerComponentFactory: DefaultDetailsMarkerComponent.Factory,
-        @Assisted private val onMarkerSelected: (GeoMarker?) -> Unit,
-        @Assisted private val geoMarkerStore: GeoMarkerStore,
-        @Assisted component: ComponentContext,
+        @Assisted("onMarkerSelected") private val onMarkerSelected: (GeoMarker?) -> Unit,
+        @Assisted("onEditMarkerClicked") private val onEditMarkerClicked: (GeoMarker) -> Unit,
+        @Assisted("geoMarkerStore") private val geoMarkerStore: GeoMarkerStore,
+        @Assisted("componentContext") component: ComponentContext,
     ) : BottomSheetComponent,
         ComponentContext by component {
         private val navigation = StackNavigation<Config>()
@@ -133,6 +134,9 @@ class DefaultBottomSheetComponent
                             onBackClicked = {
                                 onMarkerSelected(null)
                             },
+                            onEditClicked = {
+                                onEditMarkerClicked(config.marker)
+                            },
                             component = componentContext,
                         )
                     DetailsMarker(component)
@@ -153,9 +157,10 @@ class DefaultBottomSheetComponent
         @AssistedFactory
         interface Factory {
             fun create(
-                @Assisted geoMarkerStore: GeoMarkerStore,
-                @Assisted onMarkerSelected: (GeoMarker?) -> Unit,
-                @Assisted componentContext: ComponentContext,
+                @Assisted("geoMarkerStore") geoMarkerStore: GeoMarkerStore,
+                @Assisted("onMarkerSelected") onMarkerSelected: (GeoMarker?) -> Unit,
+                @Assisted("onEditMarkerClicked") onEditMarkerClicked: (GeoMarker) -> Unit,
+                @Assisted("componentContext") componentContext: ComponentContext,
             ): DefaultBottomSheetComponent
         }
     }

@@ -6,6 +6,8 @@ import kotlinx.coroutines.flow.Flow
 interface GeoMarkerRepository {
     suspend fun addGeoMarker(marker: GeoMarker)
 
+    suspend fun deleteMarkerById(markerId: Long)
+
     fun getGeoMarkers(): Flow<List<GeoMarker>>
 
     fun getGeoMarkerById(markerId: Long): Flow<GeoMarker>

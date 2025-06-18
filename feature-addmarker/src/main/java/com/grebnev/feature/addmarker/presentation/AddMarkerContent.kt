@@ -29,6 +29,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Photo
 import androidx.compose.material3.BottomSheetScaffold
 import androidx.compose.material3.Button
@@ -57,6 +58,7 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import coil3.compose.rememberAsyncImagePainter
@@ -113,8 +115,18 @@ fun AddMarkerContent(
             scaffoldState = sheetState,
             topBar = {
                 TopBar(
-                    titleScreen = stringResource(R.string.adding_new_marker),
+                    titleScreen =
+                        when (state.editorMode) {
+                            EditorMode.ADD_MARKER -> stringResource(R.string.adding_new_marker)
+                            EditorMode.EDIT_MARKER -> stringResource(R.string.edit_marker, state.title)
+                        },
                     onBackClick = { component.onIntent(AddMarkerStore.Intent.BackClicked) },
+                    onDeleteClick =
+                        if (state.editorMode == EditorMode.EDIT_MARKER) {
+                            { component.onIntent(AddMarkerStore.Intent.DeleteClicked) }
+                        } else {
+                            null
+                        },
                 )
             },
             content = { padding ->
@@ -425,6 +437,7 @@ private fun ImagePickerSheetContent(
 private fun TopBar(
     titleScreen: String,
     onBackClick: () -> Unit,
+    onDeleteClick: (() -> Unit)? = null,
 ) {
     CenterAlignedTopAppBar(
         colors =
@@ -435,13 +448,30 @@ private fun TopBar(
                 titleContentColor = MaterialTheme.colorScheme.primary,
                 scrolledContainerColor = MaterialTheme.colorScheme.background,
             ),
-        title = { Text(text = titleScreen) },
+        title = {
+            Text(
+                text = titleScreen,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.padding(end = 6.dp),
+            )
+        },
         navigationIcon = {
             IconButton(onClick = { onBackClick() }) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                     contentDescription = null,
                 )
+            }
+        },
+        actions = {
+            onDeleteClick?.let { deleteClick ->
+                IconButton(onClick = { deleteClick() }) {
+                    Icon(
+                        imageVector = Icons.Default.Delete,
+                        contentDescription = null,
+                    )
+                }
             }
         },
     )

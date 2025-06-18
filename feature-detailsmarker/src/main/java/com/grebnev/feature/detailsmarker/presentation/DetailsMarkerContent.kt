@@ -11,6 +11,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.outlined.Photo
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -57,7 +58,12 @@ fun DetailsMarkerContent(
         if (title.isNotEmpty()) {
             TitleSection(
                 title = title,
-                onClick = { component.onIntent(DetailsMarkerStore.Intent.BackClicked) },
+                onBackClick = { component.onIntent(DetailsMarkerStore.Intent.BackClicked) },
+                onEditClick = {
+                    component.onIntent(
+                        DetailsMarkerStore.Intent.EditMarkerClicked(state.marker),
+                    )
+                },
                 modifier = Modifier.padding(horizontal = 16.dp),
             )
         }
@@ -93,7 +99,8 @@ fun DetailsMarkerContent(
 @Composable
 private fun TitleSection(
     title: String,
-    onClick: () -> Unit,
+    onBackClick: () -> Unit,
+    onEditClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Row(
@@ -104,7 +111,7 @@ private fun TitleSection(
                 .fillMaxWidth()
                 .padding(bottom = 8.dp),
     ) {
-        IconButton(onClick = onClick) {
+        IconButton(onClick = onBackClick) {
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                 contentDescription = null,
@@ -115,6 +122,12 @@ private fun TitleSection(
             style = MaterialTheme.typography.headlineSmall,
             modifier = Modifier.padding(start = 16.dp),
         )
+        IconButton(onClick = onEditClick) {
+            Icon(
+                imageVector = Icons.Default.Edit,
+                contentDescription = null,
+            )
+        }
     }
 }
 

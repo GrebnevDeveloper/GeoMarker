@@ -12,6 +12,9 @@ interface GeoMarkerDao {
     @Insert(onConflict = OnConflictStrategy.Companion.REPLACE)
     suspend fun addToMarker(marker: GeoMarkerDbModel)
 
+    @Query("DELETE FROM geo_marker WHERE id=:markerId")
+    suspend fun deleteMarkerById(markerId: Long)
+
     @Query("SELECT * FROM geo_marker")
     fun getMarkers(): Flow<List<GeoMarkerDbModel>>
 

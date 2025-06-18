@@ -9,11 +9,15 @@ interface RootComponent {
     val stack: Value<ChildStack<*, Child>>
 
     sealed interface Child {
-        data class GeoMarker(
+        data class GeoMarkers(
             val geoMarkerComponent: GeoMarkerComponent,
         ) : Child
 
         data class AddMarker(
+            val addMarkerComponent: AddMarkerComponent,
+        ) : Child
+
+        data class EditMarker(
             val addMarkerComponent: AddMarkerComponent,
         ) : Child
     }

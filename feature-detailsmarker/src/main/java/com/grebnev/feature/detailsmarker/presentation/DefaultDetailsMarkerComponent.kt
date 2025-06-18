@@ -22,6 +22,7 @@ class DefaultDetailsMarkerComponent
         private val detailsStoreFactory: DetailsMarkerStoreFactory,
         @Assisted private val marker: GeoMarker,
         @Assisted private val onBackClicked: () -> Unit,
+        @Assisted private val onEditClicked: (GeoMarker) -> Unit,
         @Assisted component: ComponentContext,
     ) : DetailsMarkerComponent,
         ComponentContext by component {
@@ -44,6 +45,9 @@ class DefaultDetailsMarkerComponent
                         DetailsMarkerStore.Label.BackClicked -> {
                             onBackClicked()
                         }
+
+                        is DetailsMarkerStore.Label.EditClicked ->
+                            onEditClicked(label.geoMarker)
                     }
                 }
             }
@@ -58,6 +62,7 @@ class DefaultDetailsMarkerComponent
             fun create(
                 @Assisted marker: GeoMarker,
                 @Assisted onBackClicked: () -> Unit,
+                @Assisted onEditClicked: (GeoMarker) -> Unit,
                 @Assisted component: ComponentContext,
             ): DefaultDetailsMarkerComponent
         }

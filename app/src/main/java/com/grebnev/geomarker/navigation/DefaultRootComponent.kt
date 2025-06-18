@@ -8,8 +8,12 @@ import com.arkivanov.decompose.router.stack.childStack
 import com.arkivanov.decompose.router.stack.pop
 import com.arkivanov.decompose.router.stack.push
 import com.arkivanov.decompose.value.Value
-import com.grebnev.feature.addmarker.presentation.DefaultAddMarkerComponent
+import com.grebnev.core.domain.entity.GeoMarker
+import com.grebnev.feature.addmarker.presentation.DefaultAddMarkerComponentProvider
 import com.grebnev.feature.geomarker.presentation.DefaultGeoMarkerComponent
+import com.grebnev.geomarker.navigation.RootComponent.Child.AddMarker
+import com.grebnev.geomarker.navigation.RootComponent.Child.EditMarker
+import com.grebnev.geomarker.navigation.RootComponent.Child.GeoMarkers
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
@@ -20,7 +24,7 @@ class DefaultRootComponent
     @AssistedInject
     constructor(
         private val geoMarkerComponentFactory: DefaultGeoMarkerComponent.Factory,
-        private val addMarkerComponentFactory: DefaultAddMarkerComponent.Factory,
+        private val addMarkerComponentProvider: DefaultAddMarkerComponentProvider,
         @Assisted componentContext: ComponentContext,
     ) : RootComponent,
         ComponentContext by componentContext {
@@ -30,7 +34,7 @@ class DefaultRootComponent
             childStack(
                 source = navigation,
                 serializer = Config.serializer(),
-                initialConfiguration = Config.GeoMarker,
+                initialConfiguration = Config.GeoMarkers,
                 handleBackButton = true,
                 childFactory = ::createChild,
             )
@@ -40,35 +44,55 @@ class DefaultRootComponent
             componentContext: ComponentContext,
         ): RootComponent.Child =
             when (config) {
-                Config.GeoMarker -> {
+                Config.GeoMarkers -> {
                     val component =
                         geoMarkerComponentFactory.create(
                             onAddMarkerClicked = {
                                 navigation.push(Config.AddMarker)
                             },
+                            onEditMarkerClicked = { marker ->
+                                navigation.push(Config.EditMarker(marker))
+                            },
                             componentContext = componentContext,
                         )
-                    RootComponent.Child.GeoMarker(component)
+                    GeoMarkers(component)
                 }
                 Config.AddMarker -> {
                     val component =
-                        addMarkerComponentFactory.create(
+                        addMarkerComponentProvider.createAddMarker(
                             onBackClicked = {
                                 navigation.pop()
                             },
                             componentContext = componentContext,
                         )
-                    RootComponent.Child.AddMarker(component)
+                    AddMarker(component)
+                }
+
+                is Config.EditMarker -> {
+                    val component =
+                        addMarkerComponentProvider.createEditMarker(
+                            onBackClicked = {
+                                navigation.pop()
+                            },
+                            geoMarker = config.geoMarker,
+                            componentContext = componentContext,
+                        )
+                    EditMarker(component)
                 }
             }
 
         @Serializable
         sealed interface Config {
             @Serializable
-            data object GeoMarker : Config
+            data object GeoMarkers : Config
 
             @Serializable
             data object AddMarker : Config
+
+            @Serializable
+            data class EditMarker(
+                val geoMarker: GeoMarker,
+            ) : Config
         }
 
         @AssistedFactory

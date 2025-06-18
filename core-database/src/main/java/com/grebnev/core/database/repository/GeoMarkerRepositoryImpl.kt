@@ -17,6 +17,10 @@ class GeoMarkerRepositoryImpl
         override suspend fun addGeoMarker(marker: GeoMarker) =
             geoMarkerDao.addToMarker(marker.toGeoMarkerDbModel())
 
+        override suspend fun deleteMarkerById(markerId: Long) {
+            geoMarkerDao.deleteMarkerById(markerId)
+        }
+
         override fun getGeoMarkers(): Flow<List<GeoMarker>> =
             geoMarkerDao.getMarkers().map { it.toGeoMarkers() }
 

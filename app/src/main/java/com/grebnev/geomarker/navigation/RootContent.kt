@@ -11,10 +11,14 @@ fun RootContent(component: RootComponent) {
     GeoMarkerTheme {
         Children(stack = component.stack) {
             when (val instance = it.instance) {
-                is RootComponent.Child.GeoMarker -> {
+                is RootComponent.Child.GeoMarkers -> {
                     GeoMarkerContent(component = instance.geoMarkerComponent)
                 }
                 is RootComponent.Child.AddMarker -> {
+                    AddMarkerContent(component = instance.addMarkerComponent)
+                }
+
+                is RootComponent.Child.EditMarker -> {
                     AddMarkerContent(component = instance.addMarkerComponent)
                 }
             }

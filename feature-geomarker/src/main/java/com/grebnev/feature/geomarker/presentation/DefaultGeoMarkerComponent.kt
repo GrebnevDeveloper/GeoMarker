@@ -7,6 +7,7 @@ import com.arkivanov.decompose.value.Value
 import com.arkivanov.mvikotlin.core.instancekeeper.getStore
 import com.arkivanov.mvikotlin.extensions.coroutines.labels
 import com.arkivanov.mvikotlin.extensions.coroutines.stateFlow
+import com.grebnev.core.domain.entity.GeoMarker
 import com.grebnev.core.extensions.componentScope
 import com.grebnev.core.map.presentation.DefaultMapComponentProvider
 import com.grebnev.core.map.presentation.MapComponent
@@ -27,6 +28,7 @@ class DefaultGeoMarkerComponent
         private val mapComponentProvider: DefaultMapComponentProvider,
         private val bottomSheetComponentFactory: DefaultBottomSheetComponent.Factory,
         @Assisted private val onAddMarkerClicked: () -> Unit,
+        @Assisted private val onEditMarkerClicked: (GeoMarker) -> Unit,
         @Assisted componentContext: ComponentContext,
     ) : GeoMarkerComponent,
         ComponentContext by componentContext {
@@ -63,6 +65,7 @@ class DefaultGeoMarkerComponent
             bottomSheetComponentFactory.create(
                 geoMarkerStore = store,
                 onMarkerSelected = { marker -> store.accept(GeoMarkerStore.Intent.SelectMarker(marker)) },
+                onEditMarkerClicked = { marker -> onEditMarkerClicked(marker) },
                 componentContext = childContext("BottomSheetComponent"),
             )
 
@@ -72,6 +75,7 @@ class DefaultGeoMarkerComponent
         interface Factory {
             fun create(
                 @Assisted onAddMarkerClicked: () -> Unit,
+                @Assisted onEditMarkerClicked: (GeoMarker) -> Unit,
                 @Assisted componentContext: ComponentContext,
             ): DefaultGeoMarkerComponent
         }

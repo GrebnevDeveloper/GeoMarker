@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="adding_new_marker">Adding a new marker</string>
+    <string name="edit_marker">Edit %s</string>
     <string name="marker_name">Marker name</string>
     <string name="marker_description">Marker description</string>
     <string name="description_too_long">The description is too long (max. 200 characters)</string>

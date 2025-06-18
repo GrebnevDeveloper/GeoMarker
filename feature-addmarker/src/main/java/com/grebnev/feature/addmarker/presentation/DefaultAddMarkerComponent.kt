@@ -7,17 +7,19 @@ import com.arkivanov.decompose.value.Value
 import com.arkivanov.mvikotlin.core.instancekeeper.getStore
 import com.arkivanov.mvikotlin.extensions.coroutines.labels
 import com.arkivanov.mvikotlin.extensions.coroutines.stateFlow
+import com.grebnev.core.domain.entity.GeoMarker
 import com.grebnev.core.extensions.componentScope
 import com.grebnev.core.map.presentation.DefaultMapComponentProvider
 import com.grebnev.core.map.presentation.MapComponent
 import com.grebnev.feature.imagepicker.presentation.DefaultImagePickerComponent
 import com.grebnev.feature.imagepicker.presentation.ImagePickerComponent
-import com.grebnev.feature.imagepicker.presentation.ImagePickerStore
+import com.grebnev.feature.imagepicker.presentation.ImagePickerStore.Intent.*
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class DefaultAddMarkerComponent
@@ -27,10 +29,16 @@ class DefaultAddMarkerComponent
         private val mapComponentProvider: DefaultMapComponentProvider,
         private val imagePickerComponentFactory: DefaultImagePickerComponent.Factory,
         @Assisted private val onBackClicked: () -> Unit,
+        @Assisted private val geoMarker: GeoMarker?,
         @Assisted componentContext: ComponentContext,
     ) : AddMarkerComponent,
         ComponentContext by componentContext {
-        private val store = instanceKeeper.getStore { addMarkerStoreFactory.create() }
+        private val store =
+            if (geoMarker == null) {
+                instanceKeeper.getStore { addMarkerStoreFactory.createAddMarkerStore() }
+            } else {
+                instanceKeeper.getStore { addMarkerStoreFactory.createEditMarkerStore(geoMarker) }
+            }
 
         private val _model = MutableValue(store.stateFlow.value)
         override val model: Value<AddMarkerStore.State> = _model
@@ -48,9 +56,11 @@ class DefaultAddMarkerComponent
                         AddMarkerStore.Label.BackClicked -> onBackClicked()
                         is AddMarkerStore.Label.AddImagesClicked -> {
                             imagePickerComponent.onIntent(
-                                ImagePickerStore.Intent.SyncSelectedImages(label.currentImagesUri),
+                                SyncSelectedImages(label.currentImagesUri),
                             )
                         }
+
+                        AddMarkerStore.Label.DeleteClicked -> onBackClicked()
                     }
                 }
             }
@@ -80,10 +90,38 @@ class DefaultAddMarkerComponent
         }
 
         @AssistedFactory
-        interface Factory {
+        interface InternalFactory {
             fun create(
                 @Assisted onBackClicked: () -> Unit,
+                @Assisted geoMarker: GeoMarker?,
                 @Assisted componentContext: ComponentContext,
             ): DefaultAddMarkerComponent
         }
+    }
+
+class DefaultAddMarkerComponentProvider
+    @Inject
+    constructor(
+        private val factory: DefaultAddMarkerComponent.InternalFactory,
+    ) {
+        fun createAddMarker(
+            onBackClicked: () -> Unit,
+            componentContext: ComponentContext,
+        ): DefaultAddMarkerComponent =
+            factory.create(
+                onBackClicked = onBackClicked,
+                geoMarker = null,
+                componentContext = componentContext,
+            )
+
+        fun createEditMarker(
+            onBackClicked: () -> Unit,
+            geoMarker: GeoMarker,
+            componentContext: ComponentContext,
+        ): DefaultAddMarkerComponent =
+            factory.create(
+                onBackClicked = onBackClicked,
+                geoMarker = geoMarker,
+                componentContext = componentContext,
+            )
     }

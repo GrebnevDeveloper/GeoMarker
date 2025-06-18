@@ -16,6 +16,10 @@ import javax.inject.Inject
 interface DetailsMarkerStore : Store<Intent, State, Label> {
     sealed interface Intent {
         data object BackClicked : Intent
+
+        data class EditMarkerClicked(
+            val geoMarker: GeoMarker,
+        ) : Intent
     }
 
     data class State(
@@ -24,6 +28,10 @@ interface DetailsMarkerStore : Store<Intent, State, Label> {
 
     sealed interface Label {
         data object BackClicked : Label
+
+        data class EditClicked(
+            val geoMarker: GeoMarker,
+        ) : Label
     }
 }
 
@@ -72,9 +80,11 @@ class DetailsMarkerStoreFactory
         private inner class ExecutorImpl : CoroutineExecutor<Intent, Action, State, Msg, Label>() {
             override fun executeIntent(intent: Intent) {
                 when (intent) {
-                    Intent.BackClicked -> {
+                    Intent.BackClicked ->
                         publish(Label.BackClicked)
-                    }
+
+                    is Intent.EditMarkerClicked ->
+                        publish(Label.EditClicked(intent.geoMarker))
                 }
             }
 
