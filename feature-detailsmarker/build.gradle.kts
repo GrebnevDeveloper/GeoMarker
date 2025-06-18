@@ -38,6 +38,7 @@ dependencies {
     implementation(project(":core-database"))
     implementation(project(":core-extensions"))
     implementation(project(":core-gallery"))
+    implementation(project(":core-common"))
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity.compose)

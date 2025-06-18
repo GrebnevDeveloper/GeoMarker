@@ -5,6 +5,7 @@ import com.arkivanov.mvikotlin.core.store.Store
 import com.arkivanov.mvikotlin.core.store.StoreFactory
 import com.arkivanov.mvikotlin.extensions.coroutines.CoroutineBootstrapper
 import com.arkivanov.mvikotlin.extensions.coroutines.CoroutineExecutor
+import com.grebnev.core.common.Result
 import com.grebnev.core.domain.entity.GeoMarker
 import com.grebnev.feature.detailsmarker.domain.GetDetailsMarkerUseCase
 import com.grebnev.feature.detailsmarker.presentation.DetailsMarkerStore.Intent
@@ -23,7 +24,7 @@ interface DetailsMarkerStore : Store<Intent, State, Label> {
     }
 
     data class State(
-        val marker: GeoMarker,
+        val markerResult: Result<GeoMarker>,
     )
 
     sealed interface Label {
@@ -47,7 +48,7 @@ class DetailsMarkerStoreFactory
                 Store<Intent, State, Label> by storeFactory
                     .create(
                         name = "DetailsMarkerStore",
-                        initialState = State(marker),
+                        initialState = State(Result.success(marker)),
                         bootstrapper = BootstrapperImpl(marker.id),
                         executorFactory = ::ExecutorImpl,
                         reducer = ReducerImpl,
@@ -55,13 +56,13 @@ class DetailsMarkerStoreFactory
 
         private sealed interface Action {
             data class MarkerLoaded(
-                val marker: GeoMarker,
+                val markerResult: Result<GeoMarker>,
             ) : Action
         }
 
         private sealed interface Msg {
             data class MarkerLoaded(
-                val marker: GeoMarker,
+                val markerResult: Result<GeoMarker>,
             ) : Msg
         }
 
@@ -91,7 +92,7 @@ class DetailsMarkerStoreFactory
             override fun executeAction(action: Action) {
                 when (action) {
                     is Action.MarkerLoaded ->
-                        dispatch(Msg.MarkerLoaded(action.marker))
+                        dispatch(Msg.MarkerLoaded(action.markerResult))
                 }
             }
         }
@@ -100,7 +101,7 @@ class DetailsMarkerStoreFactory
             override fun State.reduce(msg: Msg): State =
                 when (msg) {
                     is Msg.MarkerLoaded -> {
-                        copy(marker = msg.marker)
+                        copy(markerResult = msg.markerResult)
                     }
                 }
         }

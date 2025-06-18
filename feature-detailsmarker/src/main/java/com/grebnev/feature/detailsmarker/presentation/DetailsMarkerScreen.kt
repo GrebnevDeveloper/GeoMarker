@@ -15,6 +15,7 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.outlined.Photo
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -40,34 +41,60 @@ import coil3.request.crossfade
 import coil3.size.Scale
 import coil3.size.Size
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
+import com.grebnev.core.common.Result
+import com.grebnev.core.domain.entity.GeoMarker
 import com.grebnev.feature.detailsmarker.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DetailsMarkerContent(
+fun DetailsMarkerScreen(
     component: DetailsMarkerComponent,
     hasStoragePermission: Boolean,
     modifier: Modifier = Modifier,
 ) {
     val state by component.model.subscribeAsState()
 
+    when (val result = state.markerResult) {
+        Result.Loading -> {
+            CircularProgressIndicator()
+        }
+        is Result.Success -> {
+            DetailsMarkerContent(
+                result = result,
+                component = component,
+                modifier = modifier,
+                hasStoragePermission = hasStoragePermission,
+            )
+        }
+        else -> component.onIntent(DetailsMarkerStore.Intent.BackClicked)
+    }
+}
+
+@Composable
+private fun DetailsMarkerContent(
+    result: Result.Success<GeoMarker>,
+    component: DetailsMarkerComponent,
+    modifier: Modifier,
+    hasStoragePermission: Boolean,
+) {
+    val marker = result.data
     Column(
         modifier = Modifier.fillMaxSize(),
     ) {
-        val title = state.marker.title
+        val title = marker.title
         if (title.isNotEmpty()) {
             TitleSection(
                 title = title,
                 onBackClick = { component.onIntent(DetailsMarkerStore.Intent.BackClicked) },
                 onEditClick = {
                     component.onIntent(
-                        DetailsMarkerStore.Intent.EditMarkerClicked(state.marker),
+                        DetailsMarkerStore.Intent.EditMarkerClicked(marker),
                     )
                 },
                 modifier = Modifier.padding(horizontal = 16.dp),
             )
         }
-        key(state.marker.hashCode()) {
+        key(marker.hashCode()) {
             LazyColumn(
                 modifier =
                     modifier
@@ -77,7 +104,7 @@ fun DetailsMarkerContent(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 if (hasStoragePermission) {
-                    val imagesUri = state.marker.imagesUri
+                    val imagesUri = marker.imagesUri
                     if (imagesUri.isNotEmpty()) {
                         item {
                             ImagesSection(imagesUri)
@@ -85,7 +112,7 @@ fun DetailsMarkerContent(
                     }
                 }
 
-                val description = state.marker.description
+                val description = marker.description
                 if (description.isNotEmpty()) {
                     item {
                         DescriptionSection(description)

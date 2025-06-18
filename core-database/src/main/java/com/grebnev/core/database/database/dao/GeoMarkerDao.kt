@@ -19,5 +19,5 @@ interface GeoMarkerDao {
     fun getMarkers(): Flow<List<GeoMarkerDbModel>>
 
     @Query("SELECT * FROM geo_marker WHERE id=:markerId LIMIT 1")
-    fun getMarkerById(markerId: Long): Flow<GeoMarkerDbModel>
+    fun getMarkerById(markerId: Long): Flow<GeoMarkerDbModel?>
 }
