@@ -1,6 +1,6 @@
 package com.grebnev.feature.addmarker.domain
 
-import com.grebnev.core.database.repository.GeoMarkerRepository
+import com.grebnev.core.database.repository.marker.GeoMarkerRepository
 import javax.inject.Inject
 
 class DeleteMarkerUseCase

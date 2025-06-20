@@ -5,6 +5,7 @@ import androidx.core.net.toUri
 import com.arkivanov.mvikotlin.core.store.Reducer
 import com.arkivanov.mvikotlin.core.store.Store
 import com.arkivanov.mvikotlin.core.store.StoreFactory
+import com.arkivanov.mvikotlin.extensions.coroutines.CoroutineBootstrapper
 import com.arkivanov.mvikotlin.extensions.coroutines.CoroutineExecutor
 import com.grebnev.core.domain.entity.GeoMarker
 import com.grebnev.feature.addmarker.domain.AddGeoMarkerUseCase
@@ -14,9 +15,9 @@ import com.grebnev.feature.addmarker.presentation.AddMarkerStore.Label
 import com.grebnev.feature.addmarker.presentation.AddMarkerStore.State
 import com.yandex.mapkit.geometry.Point
 import com.yandex.mapkit.map.CameraPosition
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import javax.inject.Inject
-import kotlin.random.Random
 
 interface AddMarkerStore : Store<Intent, State, Label> {
     sealed interface Intent {
@@ -57,7 +58,7 @@ interface AddMarkerStore : Store<Intent, State, Label> {
         val editorMode: EditorMode,
         val title: String,
         val description: String,
-        val location: CameraPosition,
+        val location: CameraPosition?,
         val validationErrors: List<ValidationError>,
         val selectedImages: List<Uri>,
         val showImagePicker: Boolean,
@@ -81,6 +82,10 @@ interface AddMarkerStore : Store<Intent, State, Label> {
         data class AddImagesClicked(
             val currentImagesUri: List<Uri>,
         ) : Label
+
+        data class CameraPositionChanged(
+            val position: CameraPosition,
+        ) : Label
     }
 }
 
@@ -102,16 +107,7 @@ class AddMarkerStoreFactory
                                 editorMode = EditorMode.ADD_MARKER,
                                 title = "",
                                 description = "",
-                                location =
-                                    CameraPosition(
-                                        Point(
-                                            Random.nextDouble(56.7, 56.9),
-                                            Random.nextDouble(53.1, 53.2),
-                                        ),
-                                        15f,
-                                        0f,
-                                        0f,
-                                    ),
+                                location = null,
                                 validationErrors = emptyList(),
                                 selectedImages = emptyList(),
                                 showImagePicker = false,
@@ -132,26 +128,22 @@ class AddMarkerStoreFactory
                                 editorMode = EditorMode.EDIT_MARKER,
                                 title = geoMarker.title,
                                 description = geoMarker.description,
-                                location =
-                                    CameraPosition(
-                                        Point(
-                                            geoMarker.latitude,
-                                            geoMarker.longitude,
-                                        ),
-                                        15f,
-                                        0f,
-                                        0f,
-                                    ),
+                                location = null,
                                 validationErrors = emptyList(),
                                 selectedImages = geoMarker.imagesUri.map { it.toUri() },
                                 showImagePicker = false,
                                 markerId = geoMarker.id,
                             ),
                         executorFactory = ::ExecutorImpl,
+                        bootstrapper = BootstrapperImpl(geoMarker),
                         reducer = ReducerImpl,
                     ) {}
 
-        private sealed interface Action
+        private sealed interface Action {
+            data class CameraPositionChanged(
+                val position: CameraPosition,
+            ) : Action
+        }
 
         private sealed interface Msg {
             data class TitleUpdated(
@@ -183,7 +175,36 @@ class AddMarkerStoreFactory
             ) : Msg
         }
 
+        private inner class BootstrapperImpl(
+            private val marker: GeoMarker,
+        ) : CoroutineBootstrapper<Action>() {
+            override fun invoke() {
+                scope.launch {
+                    delay(100)
+                    dispatch(
+                        Action.CameraPositionChanged(
+                            CameraPosition(
+                                Point(marker.latitude, marker.longitude),
+                                15f,
+                                0f,
+                                0f,
+                            ),
+                        ),
+                    )
+                }
+            }
+        }
+
         private inner class ExecutorImpl : CoroutineExecutor<Intent, Action, State, Msg, Label>() {
+            override fun executeAction(action: Action) {
+                when (action) {
+                    is Action.CameraPositionChanged -> {
+                        dispatch(Msg.CameraPositionChanged(action.position))
+                        publish(Label.CameraPositionChanged(action.position))
+                    }
+                }
+            }
+
             override fun executeIntent(intent: Intent) {
                 when (intent) {
                     is Intent.TitleChanged ->
@@ -240,29 +261,31 @@ class AddMarkerStoreFactory
                 }
 
                 scope.launch {
-                    if (state.editorMode == EditorMode.EDIT_MARKER && state.markerId != null) {
-                        addGeoMarkerUseCase(
-                            GeoMarker(
-                                id = state.markerId,
-                                title = state.title,
-                                description = state.description,
-                                latitude = state.location.target.latitude,
-                                longitude = state.location.target.longitude,
-                                imagesUri = state.selectedImages.map { it.toString() },
-                            ),
-                        )
-                    } else {
-                        addGeoMarkerUseCase(
-                            GeoMarker(
-                                title = state.title,
-                                description = state.description,
-                                latitude = state.location.target.latitude,
-                                longitude = state.location.target.longitude,
-                                imagesUri = state.selectedImages.map { it.toString() },
-                            ),
-                        )
+                    if (state.location != null) {
+                        if (state.editorMode == EditorMode.EDIT_MARKER && state.markerId != null) {
+                            addGeoMarkerUseCase(
+                                GeoMarker(
+                                    id = state.markerId,
+                                    title = state.title,
+                                    description = state.description,
+                                    latitude = state.location.target.latitude,
+                                    longitude = state.location.target.longitude,
+                                    imagesUri = state.selectedImages.map { it.toString() },
+                                ),
+                            )
+                        } else {
+                            addGeoMarkerUseCase(
+                                GeoMarker(
+                                    title = state.title,
+                                    description = state.description,
+                                    latitude = state.location.target.latitude,
+                                    longitude = state.location.target.longitude,
+                                    imagesUri = state.selectedImages.map { it.toString() },
+                                ),
+                            )
+                        }
+                        publish(Label.SubmitClicked)
                     }
-                    publish(Label.SubmitClicked)
                 }
             }
         }

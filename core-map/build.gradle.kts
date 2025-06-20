@@ -36,6 +36,7 @@ dependencies {
     implementation(project(":core-location"))
     implementation(project(":core-extensions"))
     implementation(project(":core-domain"))
+    implementation(project(":core-database"))
     implementation(project(":feature-geomarker-api"))
 
     implementation(libs.androidx.core.ktx)

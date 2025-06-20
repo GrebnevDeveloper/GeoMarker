@@ -51,6 +51,7 @@ fun MapContent(
     HandleFirstLocation(
         state = state,
         mapView = mapView,
+        showCurrentLocation = showCurrentLocation,
     )
 
     SynchronizationPositionWithStore(
@@ -126,9 +127,10 @@ fun MapContent(
 private fun HandleFirstLocation(
     state: MapStore.State,
     mapView: MapView,
+    showCurrentLocation: Boolean,
 ) {
     LaunchedEffect(state.isFirstLocation) {
-        if (!state.isFirstLocation && state.cameraPosition != null) {
+        if (!state.isFirstLocation && state.cameraPosition != null && showCurrentLocation) {
             state.cameraPosition.let { position ->
                 mapView.mapWindow.map.move(position)
             }

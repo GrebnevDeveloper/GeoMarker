@@ -57,7 +57,7 @@ class DefaultRootComponent
                         )
                     GeoMarkers(component)
                 }
-                Config.AddMarker -> {
+                is Config.AddMarker -> {
                     val component =
                         addMarkerComponentProvider.createAddMarker(
                             onBackClicked = {

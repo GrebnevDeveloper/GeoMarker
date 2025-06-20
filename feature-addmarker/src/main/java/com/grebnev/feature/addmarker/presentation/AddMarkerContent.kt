@@ -205,14 +205,16 @@ fun AddMarkerContent(
                                         .pointerInput(Unit) {
                                             detectTransformGestures(
                                                 onGesture = { centroid, pan, zoom, rotation ->
-                                                    component.mapComponent.onIntent(
-                                                        MapStore.Intent.UpdateCameraPosition(
-                                                            state.location.calculateNewPosition(
-                                                                panOffset = pan,
-                                                                zoomChange = zoom - 1f,
+                                                    state.location?.let { location ->
+                                                        component.mapComponent.onIntent(
+                                                            MapStore.Intent.UpdateCameraPosition(
+                                                                location.calculateNewPosition(
+                                                                    panOffset = pan,
+                                                                    zoomChange = zoom - 1f,
+                                                                ),
                                                             ),
-                                                        ),
-                                                    )
+                                                        )
+                                                    }
                                                 },
                                             )
                                         },

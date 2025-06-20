@@ -3,7 +3,9 @@ package com.grebnev.feature.addmarker.presentation
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.childContext
 import com.arkivanov.decompose.value.MutableValue
+import com.arkivanov.decompose.value.ObserveLifecycleMode
 import com.arkivanov.decompose.value.Value
+import com.arkivanov.decompose.value.subscribe
 import com.arkivanov.mvikotlin.core.instancekeeper.getStore
 import com.arkivanov.mvikotlin.extensions.coroutines.labels
 import com.arkivanov.mvikotlin.extensions.coroutines.stateFlow
@@ -11,9 +13,10 @@ import com.grebnev.core.domain.entity.GeoMarker
 import com.grebnev.core.extensions.componentScope
 import com.grebnev.core.map.presentation.DefaultMapComponentProvider
 import com.grebnev.core.map.presentation.MapComponent
+import com.grebnev.core.map.presentation.MapStore
 import com.grebnev.feature.imagepicker.presentation.DefaultImagePickerComponent
 import com.grebnev.feature.imagepicker.presentation.ImagePickerComponent
-import com.grebnev.feature.imagepicker.presentation.ImagePickerStore.Intent.*
+import com.grebnev.feature.imagepicker.presentation.ImagePickerStore
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
@@ -53,14 +56,20 @@ class DefaultAddMarkerComponent
                 store.labels.collect { label ->
                     when (label) {
                         AddMarkerStore.Label.SubmitClicked -> onBackClicked()
+
                         AddMarkerStore.Label.BackClicked -> onBackClicked()
+
+                        AddMarkerStore.Label.DeleteClicked -> onBackClicked()
+
                         is AddMarkerStore.Label.AddImagesClicked -> {
                             imagePickerComponent.onIntent(
-                                SyncSelectedImages(label.currentImagesUri),
+                                ImagePickerStore.Intent.SyncSelectedImages(label.currentImagesUri),
                             )
                         }
 
-                        AddMarkerStore.Label.DeleteClicked -> onBackClicked()
+                        is AddMarkerStore.Label.CameraPositionChanged -> {
+                            mapComponent.onIntent(MapStore.Intent.UpdateCameraPosition(label.position))
+                        }
                     }
                 }
             }
@@ -73,6 +82,17 @@ class DefaultAddMarkerComponent
                 },
                 componentContext = childContext("MapComponent"),
             )
+
+        init {
+            mapComponent.model.subscribe(
+                lifecycle = lifecycle,
+                mode = ObserveLifecycleMode.CREATE_DESTROY,
+            ) { state ->
+                state.cameraPosition?.let {
+                    store.accept(AddMarkerStore.Intent.CameraPositionChanged(it))
+                }
+            }
+        }
 
         override val imagePickerComponent: ImagePickerComponent =
             imagePickerComponentFactory.create(

@@ -34,6 +34,7 @@ dependencies {
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.serialization.json)
+    implementation(libs.yandex.mapkit.sdk)
     implementation(libs.room.core)
     implementation(libs.room.coroutines)
     ksp(libs.room.compiler)

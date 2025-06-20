@@ -1,4 +1,4 @@
-package com.grebnev.core.database.repository
+package com.grebnev.core.database.repository.marker
 
 import com.grebnev.core.common.Result
 import com.grebnev.core.database.database.dao.GeoMarkerDao

@@ -10,6 +10,8 @@ import com.grebnev.core.domain.entity.GeoMarker
 import com.grebnev.core.location.domain.entity.LocationStatus
 import com.grebnev.core.location.domain.usecase.GetCurrentLocationUseCase
 import com.grebnev.core.location.domain.usecase.ManageLocationUpdatesUseCase
+import com.grebnev.core.map.domain.GetLastPositionUseCase
+import com.grebnev.core.map.domain.UpdateLastPositionUseCase
 import com.grebnev.core.map.presentation.MapStore.Intent
 import com.grebnev.core.map.presentation.MapStore.Label
 import com.grebnev.core.map.presentation.MapStore.State
@@ -79,6 +81,8 @@ class MapStoreFactory
         private val storeFactory: StoreFactory,
         private val manageLocationUpdates: ManageLocationUpdatesUseCase,
         private val getCurrentLocation: GetCurrentLocationUseCase,
+        private val updateLastPositionUseCase: UpdateLastPositionUseCase,
+        private val getLastPositionUseCase: GetLastPositionUseCase,
     ) {
         fun create(geoMarkerStore: GeoMarkerStore?): MapStore =
             object :
@@ -89,7 +93,7 @@ class MapStoreFactory
                         State(
                             locationState = State.LocationState.Initial,
                             cameraPosition = null,
-                            isFirstLocation = true,
+                            isFirstLocation = geoMarkerStore != null,
                             timeUpdate = 0L,
                             markers = emptyList(),
                             selectedMarker = null,
@@ -105,6 +109,10 @@ class MapStoreFactory
             ) : Action
 
             data class CameraPositionChanged(
+                val position: CameraPosition,
+            ) : Action
+
+            data class UpdateLastPositionChanged(
                 val position: CameraPosition,
             ) : Action
 
@@ -152,6 +160,12 @@ class MapStoreFactory
             private val geoMarkerStore: GeoMarkerStore?,
         ) : CoroutineBootstrapper<Action>() {
             override fun invoke() {
+                scope.launch {
+                    val position = getLastPositionUseCase()
+                    if (position != null) {
+                        dispatch(Action.UpdateLastPositionChanged(CameraPosition(position, 15f, 0f, 0f)))
+                    }
+                }
                 scope.launch {
                     determineCurrentLocation()
                 }
@@ -256,6 +270,9 @@ class MapStoreFactory
                             lastCameraPosition = intent.position
                             dispatch(Msg.CameraPositionChanged(intent.position))
                             publish(Label.CameraPositionChanged(intent.position))
+                            scope.launch {
+                                updateLastPositionUseCase(intent.position.target)
+                            }
                         }
                     }
 
@@ -297,6 +314,10 @@ class MapStoreFactory
 
                     is Action.MarkerSelected -> {
                         dispatch(Msg.MarkerSelected(action.marker))
+                    }
+
+                    is Action.UpdateLastPositionChanged -> {
+                        dispatch(Msg.CameraPositionChanged(action.position))
                     }
                 }
             }
