@@ -9,7 +9,7 @@ import com.arkivanov.decompose.router.stack.pop
 import com.arkivanov.decompose.router.stack.push
 import com.arkivanov.decompose.value.Value
 import com.grebnev.core.domain.entity.GeoMarker
-import com.grebnev.feature.addmarker.presentation.DefaultAddMarkerComponentProvider
+import com.grebnev.feature.editormarker.presentation.DefaultAddMarkerComponentProvider
 import com.grebnev.feature.geomarker.presentation.DefaultGeoMarkerComponent
 import com.grebnev.geomarker.navigation.RootComponent.Child.AddMarker
 import com.grebnev.geomarker.navigation.RootComponent.Child.EditMarker

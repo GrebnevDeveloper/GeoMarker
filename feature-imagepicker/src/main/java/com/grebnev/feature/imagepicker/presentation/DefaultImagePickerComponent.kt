@@ -2,13 +2,12 @@ package com.grebnev.feature.imagepicker.presentation
 
 import android.net.Uri
 import com.arkivanov.decompose.ComponentContext
-import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
-import com.arkivanov.essenty.lifecycle.doOnCreate
 import com.arkivanov.mvikotlin.core.instancekeeper.getStore
 import com.arkivanov.mvikotlin.extensions.coroutines.labels
 import com.arkivanov.mvikotlin.extensions.coroutines.stateFlow
-import com.grebnev.core.extensions.componentScope
+import com.grebnev.core.common.delegates.StateFlowDelegate
+import com.grebnev.core.common.extensions.scope
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
@@ -27,20 +26,9 @@ class DefaultImagePickerComponent
         ComponentContext by componentContext {
         private val store = instanceKeeper.getStore { imagePickerStoreFactory.create() }
 
-        private val _model = MutableValue(store.stateFlow.value)
-        override val model: Value<ImagePickerStore.State> = _model
-
-        private val scope = componentScope()
+        override val model: Value<ImagePickerStore.State> by StateFlowDelegate(scope, store.stateFlow)
 
         init {
-            lifecycle.doOnCreate {
-            }
-            scope.launch {
-                store.stateFlow.collect { newState ->
-                    _model.value = newState
-                }
-            }
-
             scope.launch {
                 store.labels.collect { label ->
                     when (label) {

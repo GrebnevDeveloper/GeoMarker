@@ -1,4 +1,4 @@
-package com.grebnev.feature.addmarker.presentation
+package com.grebnev.feature.editormarker.presentation
 
 import android.net.Uri
 import androidx.core.net.toUri
@@ -8,18 +8,19 @@ import com.arkivanov.mvikotlin.core.store.StoreFactory
 import com.arkivanov.mvikotlin.extensions.coroutines.CoroutineBootstrapper
 import com.arkivanov.mvikotlin.extensions.coroutines.CoroutineExecutor
 import com.grebnev.core.domain.entity.GeoMarker
-import com.grebnev.feature.addmarker.domain.AddGeoMarkerUseCase
-import com.grebnev.feature.addmarker.domain.DeleteMarkerUseCase
-import com.grebnev.feature.addmarker.presentation.AddMarkerStore.Intent
-import com.grebnev.feature.addmarker.presentation.AddMarkerStore.Label
-import com.grebnev.feature.addmarker.presentation.AddMarkerStore.State
+import com.grebnev.core.map.extensions.defaultCameraPosition
+import com.grebnev.feature.editormarker.domain.DeleteMarkerUseCase
+import com.grebnev.feature.editormarker.domain.SaveGeoMarkerUseCase
+import com.grebnev.feature.editormarker.presentation.EditorMarkerStore.Intent
+import com.grebnev.feature.editormarker.presentation.EditorMarkerStore.Label
+import com.grebnev.feature.editormarker.presentation.EditorMarkerStore.State
 import com.yandex.mapkit.geometry.Point
 import com.yandex.mapkit.map.CameraPosition
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-interface AddMarkerStore : Store<Intent, State, Label> {
+interface EditorMarkerStore : Store<Intent, State, Label> {
     sealed interface Intent {
         data class TitleChanged(
             val title: String,
@@ -33,7 +34,7 @@ interface AddMarkerStore : Store<Intent, State, Label> {
             val position: CameraPosition,
         ) : Intent
 
-        data object SubmitClicked : Intent
+        data object SaveClicked : Intent
 
         data object BackClicked : Intent
 
@@ -73,7 +74,7 @@ interface AddMarkerStore : Store<Intent, State, Label> {
     }
 
     sealed interface Label {
-        data object SubmitClicked : Label
+        data object SaveClicked : Label
 
         data object BackClicked : Label
 
@@ -89,16 +90,16 @@ interface AddMarkerStore : Store<Intent, State, Label> {
     }
 }
 
-class AddMarkerStoreFactory
+class EditorMarkerStoreFactory
     @Inject
     constructor(
         private val storeFactory: StoreFactory,
-        private val addGeoMarkerUseCase: AddGeoMarkerUseCase,
+        private val saveGeoMarkerUseCase: SaveGeoMarkerUseCase,
         private val deleteMarkerUseCase: DeleteMarkerUseCase,
     ) {
-        fun createAddMarkerStore(): AddMarkerStore =
+        fun createAddMarkerStore(): EditorMarkerStore =
             object :
-                AddMarkerStore,
+                EditorMarkerStore,
                 Store<Intent, State, Label> by storeFactory
                     .create(
                         name = "AddMarkerStore",
@@ -117,9 +118,9 @@ class AddMarkerStoreFactory
                         reducer = ReducerImpl,
                     ) {}
 
-        fun createEditMarkerStore(geoMarker: GeoMarker): AddMarkerStore =
+        fun createEditMarkerStore(geoMarker: GeoMarker): EditorMarkerStore =
             object :
-                AddMarkerStore,
+                EditorMarkerStore,
                 Store<Intent, State, Label> by storeFactory
                     .create(
                         name = "EditMarkerStore",
@@ -180,15 +181,10 @@ class AddMarkerStoreFactory
         ) : CoroutineBootstrapper<Action>() {
             override fun invoke() {
                 scope.launch {
-                    delay(100)
+                    delay(TIMEOUT_SETTING_POSITION_MARKER)
                     dispatch(
                         Action.CameraPositionChanged(
-                            CameraPosition(
-                                Point(marker.latitude, marker.longitude),
-                                15f,
-                                0f,
-                                0f,
-                            ),
+                            Point(marker.latitude, marker.longitude).defaultCameraPosition,
                         ),
                     )
                 }
@@ -213,8 +209,8 @@ class AddMarkerStoreFactory
                     is Intent.DescriptionChanged ->
                         dispatch(Msg.DescriptionUpdated(intent.description))
 
-                    Intent.SubmitClicked -> {
-                        submitMarker()
+                    Intent.SaveClicked -> {
+                        saveMarker()
                     }
 
                     Intent.BackClicked ->
@@ -251,7 +247,7 @@ class AddMarkerStoreFactory
                 }
             }
 
-            private fun submitMarker() {
+            private fun saveMarker() {
                 val state = state()
                 val errors = validate(state)
 
@@ -263,7 +259,7 @@ class AddMarkerStoreFactory
                 scope.launch {
                     if (state.location != null) {
                         if (state.editorMode == EditorMode.EDIT_MARKER && state.markerId != null) {
-                            addGeoMarkerUseCase(
+                            saveGeoMarkerUseCase(
                                 GeoMarker(
                                     id = state.markerId,
                                     title = state.title,
@@ -274,7 +270,7 @@ class AddMarkerStoreFactory
                                 ),
                             )
                         } else {
-                            addGeoMarkerUseCase(
+                            saveGeoMarkerUseCase(
                                 GeoMarker(
                                     title = state.title,
                                     description = state.description,
@@ -284,7 +280,7 @@ class AddMarkerStoreFactory
                                 ),
                             )
                         }
-                        publish(Label.SubmitClicked)
+                        publish(Label.SaveClicked)
                     }
                 }
             }
@@ -313,6 +309,7 @@ class AddMarkerStoreFactory
         }
 
         companion object {
-            private const val MAX_LENGTH_DESCRIPTION = 200
+            private const val MAX_LENGTH_DESCRIPTION = 200L
+            private const val TIMEOUT_SETTING_POSITION_MARKER = 100L
         }
     }

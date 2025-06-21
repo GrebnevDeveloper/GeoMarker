@@ -1,4 +1,4 @@
-package com.grebnev.feature.addmarker.domain
+package com.grebnev.feature.editormarker.domain
 
 import com.grebnev.core.database.repository.marker.GeoMarkerRepository
 import javax.inject.Inject

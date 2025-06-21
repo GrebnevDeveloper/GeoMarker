@@ -1,6 +1,6 @@
 package com.grebnev.feature.detailsmarker.domain
 
-import com.grebnev.core.common.Result
+import com.grebnev.core.common.wrappers.Result
 import com.grebnev.core.database.repository.marker.GeoMarkerRepository
 import com.grebnev.core.gallery.domain.repository.GalleryRepository
 import kotlinx.coroutines.flow.map

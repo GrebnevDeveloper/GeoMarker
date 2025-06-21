@@ -1,13 +1,13 @@
 package com.grebnev.core.map.presentation
 
 import com.arkivanov.decompose.ComponentContext
-import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.mvikotlin.core.instancekeeper.getStore
 import com.arkivanov.mvikotlin.extensions.coroutines.labels
 import com.arkivanov.mvikotlin.extensions.coroutines.stateFlow
+import com.grebnev.core.common.delegates.StateFlowDelegate
+import com.grebnev.core.common.extensions.scope
 import com.grebnev.core.domain.entity.GeoMarker
-import com.grebnev.core.extensions.componentScope
 import com.grebnev.feature.geomarker.api.GeoMarkerStore
 import com.yandex.mapkit.map.CameraPosition
 import dagger.assisted.Assisted
@@ -28,24 +28,11 @@ class DefaultMapComponent
         @Assisted componentContext: ComponentContext,
     ) : MapComponent,
         ComponentContext by componentContext {
-        private val store =
-            instanceKeeper.getStore {
-                mapStoreFactory.create(
-                    geoMarkerStore = geoMarkerStore,
-                )
-            }
+        private val store = instanceKeeper.getStore { mapStoreFactory.create(geoMarkerStore) }
 
-        private val _model = MutableValue(store.stateFlow.value)
-        override val model: Value<MapStore.State> = _model
-
-        private val scope = componentScope()
+        override val model: Value<MapStore.State> by StateFlowDelegate(scope, store.stateFlow)
 
         init {
-            scope.launch {
-                store.stateFlow.collect { newState ->
-                    _model.value = newState
-                }
-            }
             scope.launch {
                 store.labels.collect { label ->
                     when (label) {

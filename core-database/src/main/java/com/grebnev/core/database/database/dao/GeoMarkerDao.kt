@@ -10,7 +10,7 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface GeoMarkerDao {
     @Insert(onConflict = OnConflictStrategy.Companion.REPLACE)
-    suspend fun addToMarker(marker: GeoMarkerDbModel)
+    suspend fun saveGeoMarker(marker: GeoMarkerDbModel)
 
     @Query("DELETE FROM geo_marker WHERE id=:markerId")
     suspend fun deleteMarkerById(markerId: Long)

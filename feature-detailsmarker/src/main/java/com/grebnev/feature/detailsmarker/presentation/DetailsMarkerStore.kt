@@ -5,7 +5,7 @@ import com.arkivanov.mvikotlin.core.store.Store
 import com.arkivanov.mvikotlin.core.store.StoreFactory
 import com.arkivanov.mvikotlin.extensions.coroutines.CoroutineBootstrapper
 import com.arkivanov.mvikotlin.extensions.coroutines.CoroutineExecutor
-import com.grebnev.core.common.Result
+import com.grebnev.core.common.wrappers.Result
 import com.grebnev.core.domain.entity.GeoMarker
 import com.grebnev.feature.detailsmarker.domain.GetDetailsMarkerUseCase
 import com.grebnev.feature.detailsmarker.presentation.DetailsMarkerStore.Intent

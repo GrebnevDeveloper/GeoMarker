@@ -1,16 +1,16 @@
-package com.grebnev.feature.addmarker.presentation
+package com.grebnev.feature.editormarker.presentation
 
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.childContext
-import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.ObserveLifecycleMode
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.subscribe
 import com.arkivanov.mvikotlin.core.instancekeeper.getStore
 import com.arkivanov.mvikotlin.extensions.coroutines.labels
 import com.arkivanov.mvikotlin.extensions.coroutines.stateFlow
+import com.grebnev.core.common.delegates.StateFlowDelegate
+import com.grebnev.core.common.extensions.scope
 import com.grebnev.core.domain.entity.GeoMarker
-import com.grebnev.core.extensions.componentScope
 import com.grebnev.core.map.presentation.DefaultMapComponentProvider
 import com.grebnev.core.map.presentation.MapComponent
 import com.grebnev.core.map.presentation.MapStore
@@ -25,49 +25,43 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @OptIn(ExperimentalCoroutinesApi::class)
-class DefaultAddMarkerComponent
+class DefaultEditorMarkerComponent
     @AssistedInject
     constructor(
-        private val addMarkerStoreFactory: AddMarkerStoreFactory,
+        private val editorMarkerStoreFactory: EditorMarkerStoreFactory,
         private val mapComponentProvider: DefaultMapComponentProvider,
         private val imagePickerComponentFactory: DefaultImagePickerComponent.Factory,
         @Assisted private val onBackClicked: () -> Unit,
         @Assisted private val geoMarker: GeoMarker?,
         @Assisted componentContext: ComponentContext,
-    ) : AddMarkerComponent,
+    ) : EditorMarkerComponent,
         ComponentContext by componentContext {
         private val store =
             if (geoMarker == null) {
-                instanceKeeper.getStore { addMarkerStoreFactory.createAddMarkerStore() }
+                instanceKeeper.getStore { editorMarkerStoreFactory.createAddMarkerStore() }
             } else {
-                instanceKeeper.getStore { addMarkerStoreFactory.createEditMarkerStore(geoMarker) }
+                instanceKeeper.getStore { editorMarkerStoreFactory.createEditMarkerStore(geoMarker) }
             }
 
-        private val _model = MutableValue(store.stateFlow.value)
-        override val model: Value<AddMarkerStore.State> = _model
+        override val model: Value<EditorMarkerStore.State> by StateFlowDelegate(scope, store.stateFlow)
 
         init {
-            componentScope().launch {
-                store.stateFlow.collect { newState ->
-                    _model.value = newState
-                }
-            }
-            componentScope().launch {
+            scope.launch {
                 store.labels.collect { label ->
                     when (label) {
-                        AddMarkerStore.Label.SubmitClicked -> onBackClicked()
+                        EditorMarkerStore.Label.SaveClicked -> onBackClicked()
 
-                        AddMarkerStore.Label.BackClicked -> onBackClicked()
+                        EditorMarkerStore.Label.BackClicked -> onBackClicked()
 
-                        AddMarkerStore.Label.DeleteClicked -> onBackClicked()
+                        EditorMarkerStore.Label.DeleteClicked -> onBackClicked()
 
-                        is AddMarkerStore.Label.AddImagesClicked -> {
+                        is EditorMarkerStore.Label.AddImagesClicked -> {
                             imagePickerComponent.onIntent(
                                 ImagePickerStore.Intent.SyncSelectedImages(label.currentImagesUri),
                             )
                         }
 
-                        is AddMarkerStore.Label.CameraPositionChanged -> {
+                        is EditorMarkerStore.Label.CameraPositionChanged -> {
                             mapComponent.onIntent(MapStore.Intent.UpdateCameraPosition(label.position))
                         }
                     }
@@ -78,7 +72,7 @@ class DefaultAddMarkerComponent
         override val mapComponent: MapComponent =
             mapComponentProvider.createLocationPicker(
                 cameraPositionChanged = { position ->
-                    store.accept(AddMarkerStore.Intent.CameraPositionChanged(position))
+                    store.accept(EditorMarkerStore.Intent.CameraPositionChanged(position))
                 },
                 componentContext = childContext("MapComponent"),
             )
@@ -89,7 +83,7 @@ class DefaultAddMarkerComponent
                 mode = ObserveLifecycleMode.CREATE_DESTROY,
             ) { state ->
                 state.cameraPosition?.let {
-                    store.accept(AddMarkerStore.Intent.CameraPositionChanged(it))
+                    store.accept(EditorMarkerStore.Intent.CameraPositionChanged(it))
                 }
             }
         }
@@ -97,15 +91,15 @@ class DefaultAddMarkerComponent
         override val imagePickerComponent: ImagePickerComponent =
             imagePickerComponentFactory.create(
                 onImagesSelectedUri = { imagesUri ->
-                    store.accept(AddMarkerStore.Intent.ConfirmImagesSelection(imagesUri))
+                    store.accept(EditorMarkerStore.Intent.ConfirmImagesSelection(imagesUri))
                 },
                 onSelectionCanceled = {
-                    store.accept(AddMarkerStore.Intent.CancelImagesSelection)
+                    store.accept(EditorMarkerStore.Intent.CancelImagesSelection)
                 },
                 componentContext = childContext("ImagePickerComponent"),
             )
 
-        override fun onIntent(intent: AddMarkerStore.Intent) {
+        override fun onIntent(intent: EditorMarkerStore.Intent) {
             store.accept(intent)
         }
 
@@ -115,19 +109,19 @@ class DefaultAddMarkerComponent
                 @Assisted onBackClicked: () -> Unit,
                 @Assisted geoMarker: GeoMarker?,
                 @Assisted componentContext: ComponentContext,
-            ): DefaultAddMarkerComponent
+            ): DefaultEditorMarkerComponent
         }
     }
 
 class DefaultAddMarkerComponentProvider
     @Inject
     constructor(
-        private val factory: DefaultAddMarkerComponent.InternalFactory,
+        private val factory: DefaultEditorMarkerComponent.InternalFactory,
     ) {
         fun createAddMarker(
             onBackClicked: () -> Unit,
             componentContext: ComponentContext,
-        ): DefaultAddMarkerComponent =
+        ): DefaultEditorMarkerComponent =
             factory.create(
                 onBackClicked = onBackClicked,
                 geoMarker = null,
@@ -138,7 +132,7 @@ class DefaultAddMarkerComponentProvider
             onBackClicked: () -> Unit,
             geoMarker: GeoMarker,
             componentContext: ComponentContext,
-        ): DefaultAddMarkerComponent =
+        ): DefaultEditorMarkerComponent =
             factory.create(
                 onBackClicked = onBackClicked,
                 geoMarker = geoMarker,

@@ -41,7 +41,7 @@ import coil3.request.crossfade
 import coil3.size.Scale
 import coil3.size.Size
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
-import com.grebnev.core.common.Result
+import com.grebnev.core.common.wrappers.Result
 import com.grebnev.core.domain.entity.GeoMarker
 import com.grebnev.feature.detailsmarker.R
 

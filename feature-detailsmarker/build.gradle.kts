@@ -36,9 +36,8 @@ android {
 dependencies {
     implementation(project(":core-domain"))
     implementation(project(":core-database"))
-    implementation(project(":core-extensions"))
-    implementation(project(":core-gallery"))
     implementation(project(":core-common"))
+    implementation(project(":core-gallery"))
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity.compose)

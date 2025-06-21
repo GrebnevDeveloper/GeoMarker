@@ -1,6 +1,6 @@
 @file:OptIn(ExperimentalPermissionsApi::class)
 
-package com.grebnev.feature.addmarker.presentation
+package com.grebnev.feature.editormarker.presentation
 
 import android.Manifest
 import android.net.Uri
@@ -76,14 +76,14 @@ import com.grebnev.core.map.presentation.MapContent
 import com.grebnev.core.map.presentation.MapStore
 import com.grebnev.core.permissions.PermissionConstants
 import com.grebnev.core.permissions.multiple.MultiplePermissionsRequest
-import com.grebnev.feature.addmarker.R
+import com.grebnev.feature.editormarker.R
 import com.grebnev.feature.imagepicker.presentation.ImagePickerComponent
 import com.grebnev.feature.imagepicker.presentation.ImagePickerContent
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddMarkerContent(
-    component: AddMarkerComponent,
+    component: EditorMarkerComponent,
     modifier: Modifier = Modifier,
 ) {
     val state by component.model.subscribeAsState()
@@ -120,10 +120,10 @@ fun AddMarkerContent(
                             EditorMode.ADD_MARKER -> stringResource(R.string.adding_new_marker)
                             EditorMode.EDIT_MARKER -> stringResource(R.string.edit_marker, state.title)
                         },
-                    onBackClick = { component.onIntent(AddMarkerStore.Intent.BackClicked) },
+                    onBackClick = { component.onIntent(EditorMarkerStore.Intent.BackClicked) },
                     onDeleteClick =
                         if (state.editorMode == EditorMode.EDIT_MARKER) {
-                            { component.onIntent(AddMarkerStore.Intent.DeleteClicked) }
+                            { component.onIntent(EditorMarkerStore.Intent.DeleteClicked) }
                         } else {
                             null
                         },
@@ -146,10 +146,10 @@ fun AddMarkerContent(
                         title = state.title,
                         validationError =
                             state.validationErrors.contains(
-                                AddMarkerStore.State.ValidationError.TITLE_EMPTY,
+                                EditorMarkerStore.State.ValidationError.TITLE_EMPTY,
                             ),
                         onTitleChanged = { title ->
-                            component.onIntent(AddMarkerStore.Intent.TitleChanged(title))
+                            component.onIntent(EditorMarkerStore.Intent.TitleChanged(title))
                         },
                     )
 
@@ -157,10 +157,10 @@ fun AddMarkerContent(
                         description = state.description,
                         validationError =
                             state.validationErrors.contains(
-                                AddMarkerStore.State.ValidationError.DESCRIPTION_TOO_LONG,
+                                EditorMarkerStore.State.ValidationError.DESCRIPTION_TOO_LONG,
                             ),
                         onDescriptionChanged = { description ->
-                            component.onIntent(AddMarkerStore.Intent.DescriptionChanged(description))
+                            component.onIntent(EditorMarkerStore.Intent.DescriptionChanged(description))
                         },
                     )
 
@@ -169,10 +169,12 @@ fun AddMarkerContent(
                         permissionsState = permissionsState,
                         onAddImagesClick = {
                             focusManager.clearFocus()
-                            component.onIntent(AddMarkerStore.Intent.AddImagesClicked(state.selectedImages))
+                            component.onIntent(
+                                EditorMarkerStore.Intent.AddImagesClicked(state.selectedImages),
+                            )
                         },
                         onRemoveImage = { imageUri ->
-                            component.onIntent(AddMarkerStore.Intent.RemoveImage(imageUri))
+                            component.onIntent(EditorMarkerStore.Intent.RemoveImage(imageUri))
                         },
                     )
 
@@ -229,7 +231,7 @@ fun AddMarkerContent(
                         modifier = modifier.fillMaxWidth(),
                         onClick = {
                             focusManager.clearFocus()
-                            component.onIntent(AddMarkerStore.Intent.SubmitClicked)
+                            component.onIntent(EditorMarkerStore.Intent.SaveClicked)
                         },
                         enabled = state.isValid,
                     ) {

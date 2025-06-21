@@ -1,15 +1,33 @@
-import org.jetbrains.kotlin.gradle.dsl.JvmTarget
-
 plugins {
-    id("java-library")
-    alias(libs.plugins.jetbrains.kotlin.jvm)
+    alias(libs.plugins.android.library)
+    alias(libs.plugins.kotlin.android)
 }
-java {
-    sourceCompatibility = JavaVersion.toVersion(libs.versions.jvmTarget.get())
-    targetCompatibility = JavaVersion.toVersion(libs.versions.jvmTarget.get())
-}
-kotlin {
-    compilerOptions {
-        jvmTarget = JvmTarget.fromTarget(libs.versions.jvmTarget.get())
+
+android {
+    namespace = "com.grebnev.core.common"
+    compileSdk =
+        libs.versions.androidCompileSdk
+            .get()
+            .toInt()
+
+    defaultConfig {
+        minSdk =
+            libs.versions.androidMinSdk
+                .get()
+                .toInt()
     }
+    compileOptions {
+        sourceCompatibility = JavaVersion.toVersion(libs.versions.jvmTarget.get())
+        targetCompatibility = JavaVersion.toVersion(libs.versions.jvmTarget.get())
+    }
+    kotlinOptions {
+        jvmTarget = libs.versions.jvmTarget.get()
+    }
+}
+
+dependencies {
+
+    implementation(libs.androidx.core.ktx)
+    implementation(libs.bundles.decompose)
+    testImplementation(libs.junit)
 }

@@ -11,8 +11,8 @@ import com.arkivanov.decompose.router.stack.replaceCurrent
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.essenty.backhandler.BackCallback
 import com.arkivanov.mvikotlin.extensions.coroutines.stateFlow
+import com.grebnev.core.common.extensions.scope
 import com.grebnev.core.domain.entity.GeoMarker
-import com.grebnev.core.extensions.componentScope
 import com.grebnev.feature.bottomsheet.navigation.BottomSheetComponent.Child.DetailsMarker
 import com.grebnev.feature.bottomsheet.navigation.BottomSheetComponent.Child.ListMarkers
 import com.grebnev.feature.detailsmarker.presentation.DefaultDetailsMarkerComponent
@@ -38,8 +38,6 @@ class DefaultBottomSheetComponent
     ) : BottomSheetComponent,
         ComponentContext by component {
         private val navigation = StackNavigation<Config>()
-
-        private val scope = componentScope()
 
         override val stack: Value<ChildStack<*, BottomSheetComponent.Child>> =
             childStack(

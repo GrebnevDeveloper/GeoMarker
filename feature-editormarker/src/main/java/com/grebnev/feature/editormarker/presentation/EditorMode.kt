@@ -1,4 +1,4 @@
-package com.grebnev.feature.addmarker.presentation
+package com.grebnev.feature.editormarker.presentation
 
 enum class EditorMode {
     ADD_MARKER,

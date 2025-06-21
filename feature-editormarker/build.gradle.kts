@@ -7,7 +7,7 @@ plugins {
 }
 
 android {
-    namespace = "com.grebnev.feature.addmarker"
+    namespace = "com.grebnev.feature.editormarker"
     compileSdk =
         libs.versions.androidCompileSdk
             .get()
@@ -33,7 +33,7 @@ android {
 }
 
 dependencies {
-    implementation(project(":core-extensions"))
+    implementation(project(":core-common"))
     implementation(project(":core-database"))
     implementation(project(":core-domain"))
     implementation(project(":core-map"))

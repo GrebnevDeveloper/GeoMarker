@@ -1,6 +1,6 @@
 package com.grebnev.core.database.repository.marker
 
-import com.grebnev.core.common.Result
+import com.grebnev.core.common.wrappers.Result
 import com.grebnev.core.database.database.dao.GeoMarkerDao
 import com.grebnev.core.database.mapper.toGeoMarker
 import com.grebnev.core.database.mapper.toGeoMarkerDbModel
@@ -16,8 +16,8 @@ class GeoMarkerRepositoryImpl
     constructor(
         private val geoMarkerDao: GeoMarkerDao,
     ) : GeoMarkerRepository {
-        override suspend fun addGeoMarker(marker: GeoMarker) =
-            geoMarkerDao.addToMarker(marker.toGeoMarkerDbModel())
+        override suspend fun saveGeoMarker(marker: GeoMarker) =
+            geoMarkerDao.saveGeoMarker(marker.toGeoMarkerDbModel())
 
         override suspend fun deleteMarkerById(markerId: Long) {
             geoMarkerDao.deleteMarkerById(markerId)
