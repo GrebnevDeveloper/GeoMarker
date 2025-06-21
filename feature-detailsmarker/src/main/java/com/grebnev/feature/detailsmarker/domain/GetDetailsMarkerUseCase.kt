@@ -1,6 +1,7 @@
 package com.grebnev.feature.detailsmarker.domain
 
-import com.grebnev.core.database.repository.GeoMarkerRepository
+import com.grebnev.core.common.wrappers.Result
+import com.grebnev.core.database.repository.marker.GeoMarkerRepository
 import com.grebnev.core.gallery.domain.repository.GalleryRepository
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
@@ -14,8 +15,16 @@ class GetDetailsMarkerUseCase
         operator fun invoke(markerId: Long) =
             geoMarkerRepository
                 .getGeoMarkerById(markerId)
-                .map { marker ->
-                    marker.copy(imagesUri = filterValidImagesUri(marker.imagesUri))
+                .map { result ->
+                    when (result) {
+                        is Result.Success -> {
+                            val marker = result.data
+                            result.copy(
+                                data = marker.copy(imagesUri = filterValidImagesUri(marker.imagesUri)),
+                            )
+                        }
+                        else -> result
+                    }
                 }
 
         private suspend fun filterValidImagesUri(imagesUri: List<String>): List<String> =

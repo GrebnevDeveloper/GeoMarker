@@ -10,6 +10,9 @@ import com.grebnev.core.domain.entity.GeoMarker
 import com.grebnev.core.location.domain.entity.LocationStatus
 import com.grebnev.core.location.domain.usecase.GetCurrentLocationUseCase
 import com.grebnev.core.location.domain.usecase.ManageLocationUpdatesUseCase
+import com.grebnev.core.map.domain.GetLastPositionUseCase
+import com.grebnev.core.map.domain.UpdateLastPositionUseCase
+import com.grebnev.core.map.extensions.defaultCameraPosition
 import com.grebnev.core.map.presentation.MapStore.Intent
 import com.grebnev.core.map.presentation.MapStore.Label
 import com.grebnev.core.map.presentation.MapStore.State
@@ -79,6 +82,8 @@ class MapStoreFactory
         private val storeFactory: StoreFactory,
         private val manageLocationUpdates: ManageLocationUpdatesUseCase,
         private val getCurrentLocation: GetCurrentLocationUseCase,
+        private val updateLastPositionUseCase: UpdateLastPositionUseCase,
+        private val getLastPositionUseCase: GetLastPositionUseCase,
     ) {
         fun create(geoMarkerStore: GeoMarkerStore?): MapStore =
             object :
@@ -89,7 +94,7 @@ class MapStoreFactory
                         State(
                             locationState = State.LocationState.Initial,
                             cameraPosition = null,
-                            isFirstLocation = true,
+                            isFirstLocation = geoMarkerStore != null,
                             timeUpdate = 0L,
                             markers = emptyList(),
                             selectedMarker = null,
@@ -105,6 +110,10 @@ class MapStoreFactory
             ) : Action
 
             data class CameraPositionChanged(
+                val position: CameraPosition,
+            ) : Action
+
+            data class UpdateLastPositionChanged(
                 val position: CameraPosition,
             ) : Action
 
@@ -152,6 +161,12 @@ class MapStoreFactory
             private val geoMarkerStore: GeoMarkerStore?,
         ) : CoroutineBootstrapper<Action>() {
             override fun invoke() {
+                scope.launch {
+                    val position = getLastPositionUseCase()
+                    if (position != null) {
+                        dispatch(Action.UpdateLastPositionChanged(position.defaultCameraPosition))
+                    }
+                }
                 scope.launch {
                     determineCurrentLocation()
                 }
@@ -220,16 +235,7 @@ class MapStoreFactory
                         val currentState = state()
                         if (currentState.locationState is State.LocationState.Available) {
                             val point = currentState.locationState.point
-                            dispatch(
-                                Msg.CameraPositionChanged(
-                                    CameraPosition(
-                                        point,
-                                        DEFAULT_ZOOM_LEVEL,
-                                        0f,
-                                        0f,
-                                    ),
-                                ),
-                            )
+                            dispatch(Msg.CameraPositionChanged(point.defaultCameraPosition))
                         }
                     }
 
@@ -256,6 +262,9 @@ class MapStoreFactory
                             lastCameraPosition = intent.position
                             dispatch(Msg.CameraPositionChanged(intent.position))
                             publish(Label.CameraPositionChanged(intent.position))
+                            scope.launch {
+                                updateLastPositionUseCase(intent.position.target)
+                            }
                         }
                     }
 
@@ -298,6 +307,10 @@ class MapStoreFactory
                     is Action.MarkerSelected -> {
                         dispatch(Msg.MarkerSelected(action.marker))
                     }
+
+                    is Action.UpdateLastPositionChanged -> {
+                        dispatch(Msg.CameraPositionChanged(action.position))
+                    }
                 }
             }
         }
@@ -314,7 +327,7 @@ class MapStoreFactory
                     is Msg.FirstLocationDetected ->
                         copy(
                             isFirstLocation = false,
-                            cameraPosition = CameraPosition(msg.point, DEFAULT_ZOOM_LEVEL, 0f, 0f),
+                            cameraPosition = msg.point.defaultCameraPosition,
                         )
 
                     is Msg.TimeUpdateChanged -> {
@@ -332,7 +345,6 @@ class MapStoreFactory
         }
 
         companion object {
-            private const val DEFAULT_ZOOM_LEVEL = 15f
             private const val DELTA_CURRENT_AND_LAST_UPDATE_IN_MILLIS = 30_000L
             const val MIN_ZOOM = 1f
             const val MAX_ZOOM = 20f

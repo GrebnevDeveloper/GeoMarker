@@ -2,12 +2,13 @@ package com.grebnev.feature.geomarker.presentation
 
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.childContext
-import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.mvikotlin.core.instancekeeper.getStore
 import com.arkivanov.mvikotlin.extensions.coroutines.labels
 import com.arkivanov.mvikotlin.extensions.coroutines.stateFlow
-import com.grebnev.core.extensions.componentScope
+import com.grebnev.core.common.delegates.StateFlowDelegate
+import com.grebnev.core.common.extensions.scope
+import com.grebnev.core.domain.entity.GeoMarker
 import com.grebnev.core.map.presentation.DefaultMapComponentProvider
 import com.grebnev.core.map.presentation.MapComponent
 import com.grebnev.feature.bottomsheet.navigation.BottomSheetComponent
@@ -27,22 +28,15 @@ class DefaultGeoMarkerComponent
         private val mapComponentProvider: DefaultMapComponentProvider,
         private val bottomSheetComponentFactory: DefaultBottomSheetComponent.Factory,
         @Assisted private val onAddMarkerClicked: () -> Unit,
+        @Assisted private val onEditMarkerClicked: (GeoMarker) -> Unit,
         @Assisted componentContext: ComponentContext,
     ) : GeoMarkerComponent,
         ComponentContext by componentContext {
         private val store = instanceKeeper.getStore { geoMarkerStoreFactory.create() }
 
-        private val _model = MutableValue(store.stateFlow.value)
-        override val model: Value<GeoMarkerStore.State> = _model
-
-        private val scope = componentScope()
+        override val model: Value<GeoMarkerStore.State> by StateFlowDelegate(scope, store.stateFlow)
 
         init {
-            scope.launch {
-                store.stateFlow.collect { newState ->
-                    _model.value = newState
-                }
-            }
             scope.launch {
                 store.labels.collect { label ->
                     when (label) {
@@ -63,6 +57,7 @@ class DefaultGeoMarkerComponent
             bottomSheetComponentFactory.create(
                 geoMarkerStore = store,
                 onMarkerSelected = { marker -> store.accept(GeoMarkerStore.Intent.SelectMarker(marker)) },
+                onEditMarkerClicked = { marker -> onEditMarkerClicked(marker) },
                 componentContext = childContext("BottomSheetComponent"),
             )
 
@@ -72,6 +67,7 @@ class DefaultGeoMarkerComponent
         interface Factory {
             fun create(
                 @Assisted onAddMarkerClicked: () -> Unit,
+                @Assisted onEditMarkerClicked: (GeoMarker) -> Unit,
                 @Assisted componentContext: ComponentContext,
             ): DefaultGeoMarkerComponent
         }

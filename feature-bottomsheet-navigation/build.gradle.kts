@@ -36,7 +36,7 @@ android {
 
 dependencies {
     implementation(project(":core-domain"))
-    implementation(project(":core-extensions"))
+    implementation(project(":core-common"))
     implementation(project(":feature-listmarkers"))
     implementation(project(":feature-detailsmarker"))
     implementation(project(":feature-geomarker-api"))

@@ -5,14 +5,17 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import com.grebnev.core.database.database.model.GeoMarkerDbModel
+import com.grebnev.core.database.database.model.MetadataDbModel
 
 @Database(
-    entities = [GeoMarkerDbModel::class],
+    entities = [GeoMarkerDbModel::class, MetadataDbModel::class],
     version = 1,
     exportSchema = false,
 )
 abstract class GeoMarkerDatabase : RoomDatabase() {
     abstract fun geoMarkerDao(): GeoMarkerDao
+
+    abstract fun metadataDao(): MetadataDao
 
     companion object {
         private const val DATABASE_NAME = "geoMarkerDatabase"

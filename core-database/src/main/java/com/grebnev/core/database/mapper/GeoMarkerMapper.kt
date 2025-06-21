@@ -5,6 +5,7 @@ import com.grebnev.core.domain.entity.GeoMarker
 
 fun GeoMarker.toGeoMarkerDbModel(): GeoMarkerDbModel =
     GeoMarkerDbModel(
+        id = id,
         title = title,
         description = description,
         latitude = latitude,

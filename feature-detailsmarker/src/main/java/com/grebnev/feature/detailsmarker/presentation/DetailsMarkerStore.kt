@@ -5,6 +5,7 @@ import com.arkivanov.mvikotlin.core.store.Store
 import com.arkivanov.mvikotlin.core.store.StoreFactory
 import com.arkivanov.mvikotlin.extensions.coroutines.CoroutineBootstrapper
 import com.arkivanov.mvikotlin.extensions.coroutines.CoroutineExecutor
+import com.grebnev.core.common.wrappers.Result
 import com.grebnev.core.domain.entity.GeoMarker
 import com.grebnev.feature.detailsmarker.domain.GetDetailsMarkerUseCase
 import com.grebnev.feature.detailsmarker.presentation.DetailsMarkerStore.Intent
@@ -16,14 +17,22 @@ import javax.inject.Inject
 interface DetailsMarkerStore : Store<Intent, State, Label> {
     sealed interface Intent {
         data object BackClicked : Intent
+
+        data class EditMarkerClicked(
+            val geoMarker: GeoMarker,
+        ) : Intent
     }
 
     data class State(
-        val marker: GeoMarker,
+        val markerResult: Result<GeoMarker>,
     )
 
     sealed interface Label {
         data object BackClicked : Label
+
+        data class EditClicked(
+            val geoMarker: GeoMarker,
+        ) : Label
     }
 }
 
@@ -39,7 +48,7 @@ class DetailsMarkerStoreFactory
                 Store<Intent, State, Label> by storeFactory
                     .create(
                         name = "DetailsMarkerStore",
-                        initialState = State(marker),
+                        initialState = State(Result.success(marker)),
                         bootstrapper = BootstrapperImpl(marker.id),
                         executorFactory = ::ExecutorImpl,
                         reducer = ReducerImpl,
@@ -47,13 +56,13 @@ class DetailsMarkerStoreFactory
 
         private sealed interface Action {
             data class MarkerLoaded(
-                val marker: GeoMarker,
+                val markerResult: Result<GeoMarker>,
             ) : Action
         }
 
         private sealed interface Msg {
             data class MarkerLoaded(
-                val marker: GeoMarker,
+                val markerResult: Result<GeoMarker>,
             ) : Msg
         }
 
@@ -72,16 +81,18 @@ class DetailsMarkerStoreFactory
         private inner class ExecutorImpl : CoroutineExecutor<Intent, Action, State, Msg, Label>() {
             override fun executeIntent(intent: Intent) {
                 when (intent) {
-                    Intent.BackClicked -> {
+                    Intent.BackClicked ->
                         publish(Label.BackClicked)
-                    }
+
+                    is Intent.EditMarkerClicked ->
+                        publish(Label.EditClicked(intent.geoMarker))
                 }
             }
 
             override fun executeAction(action: Action) {
                 when (action) {
                     is Action.MarkerLoaded ->
-                        dispatch(Msg.MarkerLoaded(action.marker))
+                        dispatch(Msg.MarkerLoaded(action.markerResult))
                 }
             }
         }
@@ -90,7 +101,7 @@ class DetailsMarkerStoreFactory
             override fun State.reduce(msg: Msg): State =
                 when (msg) {
                     is Msg.MarkerLoaded -> {
-                        copy(marker = msg.marker)
+                        copy(markerResult = msg.markerResult)
                     }
                 }
         }
