@@ -13,8 +13,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.LocationOn
@@ -23,7 +23,11 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -37,7 +41,7 @@ fun ListMarkersContent(
     modifier: Modifier = Modifier,
 ) {
     val state by component.model.subscribeAsState()
-    val scrollState = rememberLazyListState()
+    val scrollState = rememberSavedScrollState(state.markers.hashCode())
 
     Column(
         modifier =
@@ -79,6 +83,25 @@ fun ListMarkersContent(
             }
         }
     }
+}
+
+@Composable
+fun rememberSavedScrollState(sortingKey: Any? = null): LazyListState {
+    val scrollState =
+        rememberSaveable(saver = LazyListState.Saver) {
+            LazyListState(0, 0)
+        }
+
+    var lastSortingKey by rememberSaveable { mutableStateOf(sortingKey) }
+
+    LaunchedEffect(sortingKey) {
+        if (sortingKey != null && sortingKey != lastSortingKey) {
+            scrollState.scrollToItem(0)
+            lastSortingKey = sortingKey
+        }
+    }
+
+    return scrollState
 }
 
 @Composable
