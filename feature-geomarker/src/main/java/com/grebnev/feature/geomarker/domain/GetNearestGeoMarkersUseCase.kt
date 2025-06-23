@@ -42,10 +42,7 @@ class GetNearestGeoMarkersUseCase
             val markersFlow =
                 geoMarkerRepository
                     .getGeoMarkers()
-                    .distinctUntilChanged { old, new ->
-                        old.size == new.size &&
-                            old.map { it.id }.toSet() == new.map { it.id }.toSet()
-                    }
+                    .distinctUntilChanged()
 
             return combine(
                 positionFlow,
@@ -84,7 +81,7 @@ class GetNearestGeoMarkersUseCase
 
         companion object {
             private const val EARTH_RADIUS_IN_KM = 6371.0
-            private const val DISTANCE_THRESHOLD_IN_KM = 1.5
+            private const val DISTANCE_THRESHOLD_IN_KM = 0.1
             private const val DEBOUNCE_TIMEOUT_MILLISECONDS = 300L
         }
     }

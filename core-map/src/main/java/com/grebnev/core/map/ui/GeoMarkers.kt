@@ -18,6 +18,7 @@ import com.grebnev.core.domain.entity.GeoMarker
 import com.grebnev.core.map.R
 import com.yandex.mapkit.geometry.Point
 import com.yandex.mapkit.map.CameraPosition
+import com.yandex.mapkit.map.Map
 import com.yandex.mapkit.map.MapObjectCollection
 import com.yandex.mapkit.map.MapObjectTapListener
 import com.yandex.mapkit.map.PlacemarkMapObject
@@ -39,64 +40,89 @@ internal fun GeoMarkers(
     val currentMarkers = remember { mutableMapOf<Long, PlacemarkMapObject>() }
     val tapListeners = remember { mutableMapOf<Long, MapObjectTapListener>() }
     var previousSelectedId by remember { mutableStateOf<Long?>(null) }
+    var previousMarkers by remember { mutableStateOf<List<GeoMarker>>(emptyList()) }
 
     LaunchedEffect(selectedMarkerId) {
-        selectedMarkerId?.let { id ->
-            markers.find { it.id == id }?.let { marker ->
-                val targetPosition =
-                    CameraPosition(
-                        Point(marker.latitude, marker.longitude),
-                        map.cameraPosition.zoom,
-                        0f,
-                        0f,
-                    )
-                updateCameraPosition(targetPosition)
-            }
-        }
-    }
-
-    LaunchedEffect(markers, selectedMarkerId) {
-        deleteOutdatedMarkers(
-            markers = markers,
-            currentMarkers = currentMarkers,
-            tapListeners = tapListeners,
-            markersCollection = markersCollection,
-        )
+        moveToSelectedMarker(selectedMarkerId, markers, map, updateCameraPosition)
 
         if (selectedMarkerId != previousSelectedId) {
-            resetPreviousMarkerSelection(
+            toggleMarkerSelection(
                 context = context,
                 markers = markers,
-                previousSelectedId = previousSelectedId,
+                selectedId = previousSelectedId,
                 currentMarkers = currentMarkers,
+                isSelected = false,
+            )
+            toggleMarkerSelection(
+                context = context,
+                markers = markers,
+                selectedId = selectedMarkerId,
+                currentMarkers = currentMarkers,
+                isSelected = true,
             )
             previousSelectedId = selectedMarkerId
         }
+    }
 
-        markers.forEach { marker ->
-            val isSelected = marker.id == selectedMarkerId
-            val existingPlacemark = currentMarkers[marker.id]
-
-            if (existingPlacemark != null) {
-                updatePlacemark(
-                    context = context,
-                    placemark = existingPlacemark,
-                    marker = marker,
-                    isSelected = isSelected,
+    LaunchedEffect(markers) {
+        if (markers != previousMarkers) {
+            if (markers.size < previousMarkers.size) {
+                deleteOutdatedMarkers(
+                    markers = markers,
+                    currentMarkers = currentMarkers,
+                    tapListeners = tapListeners,
+                    markersCollection = markersCollection,
                 )
-            } else {
-                val tapListener = createTapListener { onMarkerClick(marker) }
-                val placemark =
-                    createPlacemark(
-                        context = context,
-                        collection = markersCollection,
-                        marker = marker,
-                        isSelected = isSelected,
-                        tapListener = tapListener,
-                    )
-                currentMarkers[marker.id] = placemark
-                tapListeners[marker.id] = tapListener
             }
+
+            markers.forEach { marker ->
+                if (!previousMarkers.contains(marker)) {
+                    val isSelected = marker.id == selectedMarkerId
+                    val existingPlacemark = currentMarkers[marker.id]
+
+                    if (existingPlacemark != null) {
+                        updatePlacemark(
+                            context = context,
+                            placemark = existingPlacemark,
+                            marker = marker,
+                            isSelected = isSelected,
+                        )
+                    } else {
+                        val tapListener = createTapListener { onMarkerClick(marker) }
+                        val placemark =
+                            createPlacemark(
+                                context = context,
+                                collection = markersCollection,
+                                marker = marker,
+                                isSelected = isSelected,
+                                tapListener = tapListener,
+                            )
+                        currentMarkers[marker.id] = placemark
+                        tapListeners[marker.id] = tapListener
+                    }
+                }
+            }
+            previousMarkers = markers
+        }
+    }
+}
+
+private fun moveToSelectedMarker(
+    selectedMarkerId: Long?,
+    markers: List<GeoMarker>,
+    map: Map,
+    updateCameraPosition: (CameraPosition) -> Unit,
+) {
+    selectedMarkerId?.let { id ->
+        markers.find { it.id == id }?.let { marker ->
+            val targetPosition =
+                CameraPosition(
+                    Point(marker.latitude, marker.longitude),
+                    map.cameraPosition.zoom,
+                    0f,
+                    0f,
+                )
+            updateCameraPosition(targetPosition)
         }
     }
 }
@@ -121,19 +147,20 @@ private fun deleteOutdatedMarkers(
     }
 }
 
-private fun resetPreviousMarkerSelection(
+private fun toggleMarkerSelection(
     context: Context,
     markers: List<GeoMarker>,
-    previousSelectedId: Long?,
+    selectedId: Long?,
     currentMarkers: MutableMap<Long, PlacemarkMapObject>,
+    isSelected: Boolean,
 ) {
-    previousSelectedId?.let { oldId ->
-        currentMarkers[oldId]?.let { oldPlacemark ->
+    selectedId?.let { id ->
+        currentMarkers[id]?.let { placemark ->
             updatePlacemark(
                 context = context,
-                placemark = oldPlacemark,
-                marker = markers.find { it.id == oldId } ?: return@let,
-                isSelected = false,
+                placemark = placemark,
+                marker = markers.find { it.id == id } ?: return@let,
+                isSelected = isSelected,
             )
         }
     }
