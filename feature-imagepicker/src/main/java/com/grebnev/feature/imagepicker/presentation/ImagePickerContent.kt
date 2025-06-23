@@ -63,8 +63,6 @@ fun ImagePickerContent(
             component.onIntent(ImagePickerStore.Intent.PhotoTaken(result))
         }
 
-    // val permissionState = rememberPermissionState(Manifest.permission.CAMERA)
-
     Column(
         modifier = modifier.padding(16.dp),
     ) {

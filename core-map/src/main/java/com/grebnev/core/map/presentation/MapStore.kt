@@ -139,9 +139,7 @@ class MapStoreFactory
                 val position: CameraPosition,
             ) : Msg
 
-            data class FirstLocationDetected(
-                val point: Point,
-            ) : Msg
+            data object FirstLocationDetected : Msg
 
             data class TimeUpdateChanged(
                 val timeUpdate: Long,
@@ -234,8 +232,8 @@ class MapStoreFactory
                     Intent.MoveToMyLocation -> {
                         val currentState = state()
                         if (currentState.locationState is State.LocationState.Available) {
-                            val point = currentState.locationState.point
-                            dispatch(Msg.CameraPositionChanged(point.defaultCameraPosition))
+                            val position = currentState.locationState.point.defaultCameraPosition
+                            moveCameraPosition(position)
                         }
                     }
 
@@ -258,14 +256,7 @@ class MapStoreFactory
                     }
 
                     is Intent.UpdateCameraPosition -> {
-                        if (lastCameraPosition != intent.position) {
-                            lastCameraPosition = intent.position
-                            dispatch(Msg.CameraPositionChanged(intent.position))
-                            publish(Label.CameraPositionChanged(intent.position))
-                            scope.launch {
-                                updateLastPositionUseCase(intent.position.target)
-                            }
-                        }
+                        moveCameraPosition(intent.position)
                     }
 
                     is Intent.MarkerClicked -> {
@@ -285,7 +276,8 @@ class MapStoreFactory
                         if (state().isFirstLocation &&
                             action.state is State.LocationState.Available
                         ) {
-                            dispatch(Msg.FirstLocationDetected(action.state.point))
+                            dispatch(Msg.FirstLocationDetected)
+                            moveCameraPosition(action.state.point.defaultCameraPosition)
                         }
 
                         val currentTime = System.currentTimeMillis()
@@ -313,6 +305,17 @@ class MapStoreFactory
                     }
                 }
             }
+
+            private fun moveCameraPosition(position: CameraPosition) {
+                if (lastCameraPosition != position) {
+                    lastCameraPosition = position
+                    dispatch(Msg.CameraPositionChanged(position))
+                    publish(Label.CameraPositionChanged(position))
+                    scope.launch {
+                        updateLastPositionUseCase(position.target)
+                    }
+                }
+            }
         }
 
         private object ReducerImpl : Reducer<State, Msg> {
@@ -324,11 +327,8 @@ class MapStoreFactory
                     is Msg.CameraPositionChanged ->
                         copy(cameraPosition = msg.position)
 
-                    is Msg.FirstLocationDetected ->
-                        copy(
-                            isFirstLocation = false,
-                            cameraPosition = msg.point.defaultCameraPosition,
-                        )
+                    Msg.FirstLocationDetected ->
+                        copy(isFirstLocation = false)
 
                     is Msg.TimeUpdateChanged -> {
                         copy(timeUpdate = msg.timeUpdate)

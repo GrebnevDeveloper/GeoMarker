@@ -10,7 +10,7 @@ import com.grebnev.feature.geomarker.api.GeoMarkerStore
 import com.grebnev.feature.geomarker.api.GeoMarkerStore.Intent
 import com.grebnev.feature.geomarker.api.GeoMarkerStore.Label
 import com.grebnev.feature.geomarker.api.GeoMarkerStore.State
-import com.grebnev.feature.geomarker.domain.GetGeoMarkersUseCase
+import com.grebnev.feature.geomarker.domain.GetNearestGeoMarkersUseCase
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -18,7 +18,7 @@ class GeoMarkerStoreFactory
     @Inject
     constructor(
         private val storeFactory: StoreFactory,
-        private val getGeoMarkersUseCase: GetGeoMarkersUseCase,
+        private val getNearestGeoMarkersUseCase: GetNearestGeoMarkersUseCase,
     ) {
         fun create(): GeoMarkerStore =
             object :
@@ -55,7 +55,7 @@ class GeoMarkerStoreFactory
         private inner class BootstrapperImpl : CoroutineBootstrapper<Action>() {
             override fun invoke() {
                 scope.launch {
-                    getGeoMarkersUseCase().collect { markers ->
+                    getNearestGeoMarkersUseCase().collect { markers ->
                         dispatch(Action.MarkersLoaded(markers))
                     }
                 }
