@@ -29,7 +29,7 @@ android {
 }
 
 dependencies {
-    implementation(project(":core-common"))
+    implementation(project(":core-common-android"))
     implementation(project(":core-gallery"))
     implementation(project(":core-permissions"))
     implementation(project(":core-ui"))

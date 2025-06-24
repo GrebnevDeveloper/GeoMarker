@@ -6,6 +6,7 @@ import com.arkivanov.mvikotlin.core.store.StoreFactory
 import com.arkivanov.mvikotlin.extensions.coroutines.CoroutineBootstrapper
 import com.arkivanov.mvikotlin.extensions.coroutines.CoroutineExecutor
 import com.arkivanov.mvikotlin.extensions.coroutines.stateFlow
+import com.grebnev.core.common.wrappers.Result
 import com.grebnev.core.domain.entity.GeoMarker
 import com.grebnev.feature.geomarker.api.GeoMarkerStore
 import com.grebnev.feature.listmarkers.ListMarkersStore.Intent
@@ -23,7 +24,7 @@ interface ListMarkersStore : Store<Intent, State, Label> {
     }
 
     data class State(
-        val markers: List<GeoMarker>,
+        val markersResult: Result<List<GeoMarker>>,
     )
 
     sealed interface Label {
@@ -45,7 +46,7 @@ class ListMarkersStoreFactory
                     name = "ListMarkersStore",
                     initialState =
                         State(
-                            markers = emptyList(),
+                            markersResult = Result.loading(),
                         ),
                     bootstrapper = BootstrapperImpl(geoMarkerStore),
                     executorFactory = ::ExecutorImpl,
@@ -54,13 +55,13 @@ class ListMarkersStoreFactory
 
         private sealed interface Action {
             data class MarkersUpdated(
-                val markers: List<GeoMarker>,
+                val markersResult: Result<List<GeoMarker>>,
             ) : Action
         }
 
         private sealed interface Msg {
             data class MarkersLoaded(
-                val markers: List<GeoMarker>,
+                val markersResult: Result<List<GeoMarker>>,
             ) : Msg
         }
 
@@ -71,7 +72,7 @@ class ListMarkersStoreFactory
             override fun invoke() {
                 scope.launch {
                     geoMarkerStore.stateFlow.collect { state ->
-                        dispatch(Action.MarkersUpdated(state.markers))
+                        dispatch(Action.MarkersUpdated(state.markersResult))
                     }
                 }
             }
@@ -89,7 +90,7 @@ class ListMarkersStoreFactory
             override fun executeAction(action: Action) {
                 when (action) {
                     is Action.MarkersUpdated -> {
-                        dispatch(Msg.MarkersLoaded(action.markers))
+                        dispatch(Msg.MarkersLoaded(action.markersResult))
                     }
                 }
             }
@@ -100,7 +101,7 @@ class ListMarkersStoreFactory
                 when (msg) {
                     is Msg.MarkersLoaded ->
                         copy(
-                            markers = msg.markers,
+                            markersResult = msg.markersResult,
                         )
                 }
         }

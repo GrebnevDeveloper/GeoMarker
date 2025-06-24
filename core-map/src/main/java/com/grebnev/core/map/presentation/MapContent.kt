@@ -21,6 +21,7 @@ import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.PermissionState
 import com.google.accompanist.permissions.isGranted
+import com.grebnev.core.common.wrappers.Result
 import com.grebnev.core.map.extensions.hasSignificantDifferenceFrom
 import com.grebnev.core.map.ui.CurrentLocationMarker
 import com.grebnev.core.map.ui.GeoMarkers
@@ -98,18 +99,22 @@ fun MapContent(
         )
 
         if (showMarkers) {
-            GeoMarkers(
-                context = context,
-                mapView = mapView,
-                markers = state.markers,
-                selectedMarkerId = state.selectedMarker?.id,
-                onMarkerClick = { marker ->
-                    component.onIntent(MapStore.Intent.MarkerClicked(marker))
-                },
-                updateCameraPosition = { position ->
-                    component.onIntent(MapStore.Intent.UpdateCameraPosition(position))
-                },
-            )
+            when (val result = state.markersResult) {
+                is Result.Success ->
+                    GeoMarkers(
+                        context = context,
+                        mapView = mapView,
+                        markers = result.data,
+                        selectedMarkerId = state.selectedMarker?.id,
+                        onMarkerClick = { marker ->
+                            component.onIntent(MapStore.Intent.MarkerClicked(marker))
+                        },
+                        updateCameraPosition = { position ->
+                            component.onIntent(MapStore.Intent.UpdateCameraPosition(position))
+                        },
+                    )
+                else -> {}
+            }
         }
         if (showPositionMarker) {
             PositionMarker(modifier = Modifier.align(Alignment.Center))

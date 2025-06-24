@@ -9,7 +9,7 @@ interface GeoMarkerRepository {
 
     suspend fun deleteMarkerById(markerId: Long)
 
-    fun getGeoMarkers(): Flow<List<GeoMarker>>
+    fun getGeoMarkers(): Flow<Result<List<GeoMarker>>>
 
     fun getGeoMarkerById(markerId: Long): Flow<Result<GeoMarker>>
 }

@@ -23,8 +23,17 @@ class GeoMarkerRepositoryImpl
             geoMarkerDao.deleteMarkerById(markerId)
         }
 
-        override fun getGeoMarkers(): Flow<List<GeoMarker>> =
-            geoMarkerDao.getMarkers().map { it.toGeoMarkers() }
+        override fun getGeoMarkers(): Flow<Result<List<GeoMarker>>> =
+            geoMarkerDao
+                .getMarkers()
+                .map { dbModel ->
+                    dbModel.toGeoMarkers().let { markers ->
+                        when {
+                            markers.isNotEmpty() -> Result.success(markers)
+                            else -> Result.empty()
+                        }
+                    }
+                }.catch { exception -> emit(Result.error(exception)) }
 
         override fun getGeoMarkerById(markerId: Long): Flow<Result<GeoMarker>> =
             geoMarkerDao
