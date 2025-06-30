@@ -5,6 +5,7 @@ import com.arkivanov.mvikotlin.core.store.Store
 import com.arkivanov.mvikotlin.core.store.StoreFactory
 import com.arkivanov.mvikotlin.extensions.coroutines.CoroutineBootstrapper
 import com.arkivanov.mvikotlin.extensions.coroutines.CoroutineExecutor
+import com.grebnev.core.common.wrappers.Result
 import com.grebnev.core.domain.entity.GeoMarker
 import com.grebnev.feature.geomarker.api.GeoMarkerStore
 import com.grebnev.feature.geomarker.api.GeoMarkerStore.Intent
@@ -28,7 +29,7 @@ class GeoMarkerStoreFactory
                         name = "GeoMarkersStore",
                         initialState =
                             State(
-                                markers = emptyList(),
+                                markersResult = Result.loading(),
                                 selectedMarker = null,
                             ),
                         bootstrapper = BootstrapperImpl(),
@@ -38,13 +39,13 @@ class GeoMarkerStoreFactory
 
         private sealed interface Action {
             data class MarkersLoaded(
-                val markers: List<GeoMarker>,
+                val markersResult: Result<List<GeoMarker>>,
             ) : Action
         }
 
         private sealed interface Msg {
             data class MarkersLoaded(
-                val markers: List<GeoMarker>,
+                val markersResult: Result<List<GeoMarker>>,
             ) : Msg
 
             data class MarkerSelected(
@@ -78,7 +79,7 @@ class GeoMarkerStoreFactory
             override fun executeAction(action: Action) {
                 when (action) {
                     is Action.MarkersLoaded -> {
-                        dispatch(Msg.MarkersLoaded(action.markers))
+                        dispatch(Msg.MarkersLoaded(action.markersResult))
                     }
                 }
             }
@@ -88,7 +89,7 @@ class GeoMarkerStoreFactory
             override fun State.reduce(msg: Msg): State =
                 when (msg) {
                     is Msg.MarkersLoaded ->
-                        copy(markers = msg.markers)
+                        copy(markersResult = msg.markersResult)
 
                     is Msg.MarkerSelected -> {
                         copy(selectedMarker = msg.marker)

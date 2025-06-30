@@ -1,6 +1,7 @@
 package com.grebnev.feature.geomarker.api
 
 import com.arkivanov.mvikotlin.core.store.Store
+import com.grebnev.core.common.wrappers.Result
 import com.grebnev.core.domain.entity.GeoMarker
 import com.grebnev.feature.geomarker.api.GeoMarkerStore.Intent
 import com.grebnev.feature.geomarker.api.GeoMarkerStore.Label
@@ -16,7 +17,7 @@ interface GeoMarkerStore : Store<Intent, State, Label> {
     }
 
     data class State(
-        val markers: List<GeoMarker>,
+        val markersResult: Result<List<GeoMarker>>,
         val selectedMarker: GeoMarker?,
     )
 

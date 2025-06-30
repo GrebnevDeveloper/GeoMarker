@@ -6,6 +6,7 @@ import com.arkivanov.mvikotlin.core.store.StoreFactory
 import com.arkivanov.mvikotlin.extensions.coroutines.CoroutineBootstrapper
 import com.arkivanov.mvikotlin.extensions.coroutines.CoroutineExecutor
 import com.arkivanov.mvikotlin.extensions.coroutines.stateFlow
+import com.grebnev.core.common.wrappers.Result
 import com.grebnev.core.domain.entity.GeoMarker
 import com.grebnev.core.location.domain.entity.LocationStatus
 import com.grebnev.core.location.domain.usecase.GetCurrentLocationUseCase
@@ -49,7 +50,7 @@ interface MapStore : Store<Intent, State, Label> {
         val cameraPosition: CameraPosition?,
         val isFirstLocation: Boolean,
         val timeUpdate: Long,
-        val markers: List<GeoMarker>,
+        val markersResult: Result<List<GeoMarker>>,
         val selectedMarker: GeoMarker?,
     ) {
         sealed interface LocationState {
@@ -96,7 +97,7 @@ class MapStoreFactory
                             cameraPosition = null,
                             isFirstLocation = geoMarkerStore != null,
                             timeUpdate = 0L,
-                            markers = emptyList(),
+                            markersResult = Result.empty(),
                             selectedMarker = null,
                         ),
                     bootstrapper = BootstrapperImpl(geoMarkerStore),
@@ -122,7 +123,7 @@ class MapStoreFactory
             ) : Action
 
             data class MarkersUpdated(
-                val markers: List<GeoMarker>,
+                val markersResult: Result<List<GeoMarker>>,
             ) : Action
 
             data class MarkerSelected(
@@ -146,7 +147,7 @@ class MapStoreFactory
             ) : Msg
 
             data class MarkersLoaded(
-                val markers: List<GeoMarker>,
+                val markersResult: Result<List<GeoMarker>>,
             ) : Msg
 
             data class MarkerSelected(
@@ -186,7 +187,7 @@ class MapStoreFactory
 
             private suspend fun updateMarkers(store: GeoMarkerStore) {
                 store.stateFlow.collect { state ->
-                    dispatch(Action.MarkersUpdated(state.markers))
+                    dispatch(Action.MarkersUpdated(state.markersResult))
                 }
             }
 
@@ -293,7 +294,7 @@ class MapStoreFactory
                         dispatch(Msg.TimeUpdateChanged(action.timeUpdate))
 
                     is Action.MarkersUpdated -> {
-                        dispatch(Msg.MarkersLoaded(action.markers))
+                        dispatch(Msg.MarkersLoaded(action.markersResult))
                     }
 
                     is Action.MarkerSelected -> {
@@ -335,7 +336,7 @@ class MapStoreFactory
                     }
 
                     is Msg.MarkersLoaded -> {
-                        copy(markers = msg.markers)
+                        copy(markersResult = msg.markersResult)
                     }
 
                     is Msg.MarkerSelected -> {

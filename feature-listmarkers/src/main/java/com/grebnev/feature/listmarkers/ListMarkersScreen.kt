@@ -20,6 +20,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material3.Card
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -28,18 +29,19 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
+import com.grebnev.core.common.wrappers.Result
 import com.grebnev.core.domain.entity.GeoMarker
 
 @Composable
-fun ListMarkersContent(
+fun ListMarkersScreen(
     component: ListMarkersComponent,
     modifier: Modifier = Modifier,
 ) {
     val state by component.model.subscribeAsState()
-    val scrollState = rememberSavedScrollState(state.markers)
 
     Column(
         modifier =
@@ -59,32 +61,55 @@ fun ListMarkersContent(
                     .weight(1f)
                     .fillMaxWidth(),
         ) {
-            if (state.markers.isEmpty()) {
-                EmptyStateView()
-            } else {
-                LazyColumn(
-                    state = scrollState,
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(vertical = 8.dp),
-                ) {
-                    items(
-                        items = state.markers,
-                        key = { it.id },
-                    ) { marker ->
-                        MarkerListItem(
-                            marker = marker,
-                            onClick = { component.onIntent(ListMarkersStore.Intent.MarkerClicked(marker)) },
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
-                        )
-                    }
-                }
+            when (val result = state.markersResult) {
+                Result.Empty ->
+                    EmptyStateView()
+
+                is Result.Error ->
+                    ErrorView()
+
+                Result.Loading ->
+                    CircularProgressIndicator()
+
+                is Result.Success ->
+                    ListMarkersContent(
+                        markers = result.data,
+                        onClick = { marker ->
+                            component.onIntent(ListMarkersStore.Intent.MarkerClicked(marker))
+                        },
+                    )
             }
         }
     }
 }
 
 @Composable
-fun rememberSavedScrollState(markers: List<GeoMarker>): LazyListState {
+private fun ListMarkersContent(
+    markers: List<GeoMarker>,
+    onClick: (GeoMarker) -> Unit,
+) {
+    val scrollState = rememberSavedScrollState(markers)
+
+    LazyColumn(
+        state = scrollState,
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(vertical = 8.dp),
+    ) {
+        items(
+            items = markers,
+            key = { it.id },
+        ) { marker ->
+            MarkerListItem(
+                marker = marker,
+                onClick = { onClick(marker) },
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+            )
+        }
+    }
+}
+
+@Composable
+private fun rememberSavedScrollState(markers: List<GeoMarker>): LazyListState {
     val scrollState = rememberLazyListState()
 
     LaunchedEffect(markers) {
@@ -151,5 +176,28 @@ private fun EmptyStateView(modifier: Modifier = Modifier) {
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
         )
+    }
+}
+
+@Composable
+private fun ErrorView(modifier: Modifier = Modifier) {
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Icon(
+            painter = painterResource(R.drawable.ic_error),
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+            modifier = Modifier.size(48.dp),
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+        Text(
+            text = stringResource(R.string.data_upload_error),
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+        )
+        Spacer(modifier = modifier.height(24.dp))
+        CircularProgressIndicator()
     }
 }

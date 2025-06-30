@@ -1,5 +1,6 @@
 package com.grebnev.feature.geomarker.domain
 
+import com.grebnev.core.common.wrappers.Result
 import com.grebnev.core.database.repository.marker.GeoMarkerRepository
 import com.grebnev.core.database.repository.position.LastPositionRepository
 import com.grebnev.core.domain.entity.GeoMarker
@@ -22,7 +23,7 @@ class GetNearestGeoMarkersUseCase
         private val lastPositionRepository: LastPositionRepository,
     ) {
         @OptIn(FlowPreview::class)
-        operator fun invoke(): Flow<List<GeoMarker>> {
+        operator fun invoke(): Flow<Result<List<GeoMarker>>> {
             val positionFlow =
                 lastPositionRepository
                     .getLastPositionFlow()
@@ -47,18 +48,25 @@ class GetNearestGeoMarkersUseCase
             return combine(
                 positionFlow,
                 markersFlow,
-            ) { lastPosition, markers ->
-                if (lastPosition != null) {
-                    markers.sortedBy { marker ->
-                        calculateDistance(
-                            latPoint1 = lastPosition.latitude,
-                            lonPoint1 = lastPosition.longitude,
-                            latPoint2 = marker.latitude,
-                            lonPoint2 = marker.longitude,
-                        )
+            ) { lastPosition, markersResult ->
+                when (markersResult) {
+                    is Result.Success -> {
+                        val sortedMarkers =
+                            if (lastPosition != null) {
+                                markersResult.data.sortedBy { marker ->
+                                    calculateDistance(
+                                        latPoint1 = lastPosition.latitude,
+                                        lonPoint1 = lastPosition.longitude,
+                                        latPoint2 = marker.latitude,
+                                        lonPoint2 = marker.longitude,
+                                    )
+                                }
+                            } else {
+                                markersResult.data
+                            }
+                        Result.success(sortedMarkers)
                     }
-                } else {
-                    markers
+                    else -> markersResult
                 }
             }.distinctUntilChanged()
         }

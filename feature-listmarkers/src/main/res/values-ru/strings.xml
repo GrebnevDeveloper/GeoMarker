@@ -2,4 +2,5 @@
 <resources>
     <string name="no_markers_available">Нет доступных меток</string>
     <string name="places_nearby">Места поблизости</string>
+    <string name="data_upload_error">Ошибка загрузки данных</string>
 </resources>

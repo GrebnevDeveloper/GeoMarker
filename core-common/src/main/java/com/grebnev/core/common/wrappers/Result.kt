@@ -13,11 +13,6 @@ sealed class Result<out T> {
 
     data object Empty : Result<Nothing>()
 
-    val isSuccess: Boolean get() = this is Success<T>
-    val isError: Boolean get() = this is Error
-    val isLoading: Boolean get() = this is Loading
-    val isEmpty: Boolean get() = this is Empty
-
     companion object {
         fun <T> success(data: T): Result<T> = Success(data)
 
