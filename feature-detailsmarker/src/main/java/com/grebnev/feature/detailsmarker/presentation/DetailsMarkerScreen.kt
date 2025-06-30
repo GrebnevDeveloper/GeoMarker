@@ -59,7 +59,7 @@ fun DetailsMarkerScreen(
             CircularProgressIndicator()
         }
         is Result.Success -> {
-            DetailsMarkerContent(
+            DetailsMarkerScreen(
                 result = result,
                 component = component,
                 modifier = modifier,
@@ -71,7 +71,7 @@ fun DetailsMarkerScreen(
 }
 
 @Composable
-private fun DetailsMarkerContent(
+private fun DetailsMarkerScreen(
     result: Result.Success<GeoMarker>,
     component: DetailsMarkerComponent,
     modifier: Modifier,

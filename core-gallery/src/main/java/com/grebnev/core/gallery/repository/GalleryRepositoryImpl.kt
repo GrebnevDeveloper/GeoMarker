@@ -79,7 +79,7 @@ class GalleryRepositoryImpl
                     val photoUri =
                         FileProvider.getUriForFile(
                             context,
-                            "${context.packageName}.fileprovider",
+                            "${context.packageName}${FILE_PROVIDER_NAME}",
                             photoFile,
                         )
 
@@ -90,7 +90,7 @@ class GalleryRepositoryImpl
             }
 
         private fun createTempImageFile(context: Context): File {
-            val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
+            val timeStamp = SimpleDateFormat(DATE_FORMAT, Locale.getDefault()).format(Date())
             val storageDir = context.getExternalFilesDir(Environment.DIRECTORY_PICTURES)
             return File.createTempFile(
                 "JPEG_${timeStamp}_",
@@ -108,7 +108,7 @@ class GalleryRepositoryImpl
                         return@withContext checkMediaStoreUri(uri)
                     }
 
-                    if (uri.authority == "${context.packageName}.fileprovider") {
+                    if (uri.authority == "${context.packageName}${FILE_PROVIDER_NAME}") {
                         return@withContext checkFileProviderUri(uri)
                     }
 
@@ -156,5 +156,10 @@ class GalleryRepositoryImpl
                 }
                 else -> false
             }
+        }
+
+        companion object {
+            private const val FILE_PROVIDER_NAME = ".fileprovider"
+            private const val DATE_FORMAT = "yyyyMMdd_HHmmss"
         }
     }

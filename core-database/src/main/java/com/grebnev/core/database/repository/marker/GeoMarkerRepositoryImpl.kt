@@ -6,9 +6,11 @@ import com.grebnev.core.database.mapper.toGeoMarker
 import com.grebnev.core.database.mapper.toGeoMarkerDbModel
 import com.grebnev.core.database.mapper.toGeoMarkers
 import com.grebnev.core.domain.entity.GeoMarker
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.retryWhen
 import javax.inject.Inject
 
 class GeoMarkerRepositoryImpl
@@ -33,7 +35,15 @@ class GeoMarkerRepositoryImpl
                             else -> Result.empty()
                         }
                     }
-                }.catch { exception -> emit(Result.error(exception)) }
+                }.retryWhen { cause, attempt ->
+                    if (attempt <= MAX_COUNT_RETRY) {
+                        delay(RETRY_TIMEOUT)
+                    } else {
+                        emit(Result.error(cause))
+                        delay(RETRY_TIMEOUT * 2)
+                    }
+                    true
+                }
 
         override fun getGeoMarkerById(markerId: Long): Flow<Result<GeoMarker>> =
             geoMarkerDao
@@ -43,4 +53,9 @@ class GeoMarkerRepositoryImpl
                 }.catch { exception ->
                     emit(Result.error(exception))
                 }
+
+        companion object {
+            private const val MAX_COUNT_RETRY = 3L
+            private const val RETRY_TIMEOUT = 3000L
+        }
     }
