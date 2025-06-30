@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="no_markers_available">No markers available</string>
+    <string name="places_nearby">Places nearby</string>
+    <string name="data_upload_error">Data upload error</string>
+</resources>
